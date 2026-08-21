@@ -494,7 +494,7 @@ function renderNodesList() {
             `<button class="btn-sm btn-secondary" disabled style="opacity: 0.7;">⏳ Aprovisionando Runner...</button>` :
             `<button class="btn-sm btn-primary" onclick="startNode('${n.nodeId}')">⚡ Iniciar Servidor</button>`
           }
-          <button class="btn-sm btn-secondary" onclick="openNodeShell('${n.nodeId}')" ${!isRunning ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>🖥️ Web Shell</button>
+          <button class="btn-sm btn-secondary" onclick="openNodeShell('${n.nodeId}')">🖥️ Web Shell</button>
           <button class="btn-sm btn-secondary" onclick="openEditModal('${n.nodeId}')">⚙️ Editar</button>
           <button class="btn-sm btn-secondary" onclick="deleteNode('${n.nodeId}')">🗑️ Eliminar</button>
         </div>
@@ -874,35 +874,43 @@ function logTelemetry(msg) {
 
 function openNodeShell(nodeId) {
   const node = nodesList.find(n => n.nodeId === nodeId);
-  if (!node || node.status !== 'running') {
-    showToast('El servidor debe estar en estado RUNNING para abrir el Web Shell');
-    return;
-  }
+  if (!node) return;
   activeNodeForShell = node;
 
-  document.getElementById('shell-modal-title').innerText = `🖥️ Web Shell: ${node.name} (${node.nodeId})`;
+  const isRunning = node.status === 'running';
+  const isProvisioning = node.status === 'provisioning';
+
+  document.getElementById('shell-modal-title').innerText = `🖥️ Conexión: ${node.name}`;
+  document.getElementById('shell-node-name').innerText = node.name;
   
-  const iframe = document.getElementById('shell-live-iframe');
-  if (node.webCommand) {
-    iframe.src = node.webCommand;
-  } else {
-    iframe.src = 'about:blank';
+  const statusTag = document.getElementById('shell-live-status');
+  if (statusTag) {
+    statusTag.innerText = isRunning ? '🟢 En Ejecución (Ubuntu 24.04)' : isProvisioning ? '⚡ Aprovisionando...' : '⚪ Detenido';
+  }
+
+  const desc = document.getElementById('shell-node-desc');
+  if (desc) {
+    desc.innerText = isRunning ? 
+      'Runner activo en GitHub Actions con servidor Tmate inverso y almacenamiento persistente en /mockhive/data.' :
+      isProvisioning ?
+      'Aprovisionando runner en GitHub Actions. El endpoint SSH estará disponible en unos segundos.' :
+      'Servidor actualmente detenido. Pulsa "⚡ Iniciar Servidor" para arrancar el runner y abrir la conexión.';
+  }
+
+  const modalSsh = document.getElementById('modal-ssh-cmd');
+  if (modalSsh) {
+    modalSsh.innerText = node.sshCommand || (isRunning ? 'Conectando...' : 'Servidor detenido');
   }
 
   document.getElementById('modal-node-shell').classList.remove('hidden');
-  showToast(`Conectando terminal web interactiva para ${node.name}...`);
-}
-
-function closeNodeShellModal() {
-  document.getElementById('modal-node-shell').classList.add('hidden');
-  const iframe = document.getElementById('shell-live-iframe');
-  if (iframe) iframe.src = 'about:blank';
-  activeNodeForShell = null;
 }
 
 function openShellInNewTab() {
-  if (activeNodeForShell && activeNodeForShell.webCommand) {
+  if (activeNodeForShell && activeNodeForShell.status === 'running' && activeNodeForShell.webCommand) {
     window.open(activeNodeForShell.webCommand, '_blank');
+    showToast('Terminal web abierta en pestaña nueva');
+  } else if (activeNodeForShell && activeNodeForShell.status !== 'running') {
+    showToast('Inicia primero el servidor con ⚡ Iniciar Servidor');
   } else if (activeNodeForShell && activeNodeForShell.sshCommand) {
     copySSHCommand(activeNodeForShell.sshCommand);
   }
