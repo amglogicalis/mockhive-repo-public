@@ -50,7 +50,7 @@ function showConfirm(title, desc, onConfirm) {
   const btn = document.getElementById('confirm-modal-btn');
   btn.onclick = () => {
     if (confirmCallback) confirmCallback();
-    closeConfirmModal(true);
+    closeConfirmModal();
   };
 
   document.getElementById('modal-confirm').classList.remove('hidden');
@@ -68,7 +68,7 @@ function loadDefaultDeployedResources() {
       name: 'Master-Production-Worker',
       osImage: 'ubuntu-latest',
       lifecycleMode: 'lazarus_24_7',
-      ttlMinutes: 350,
+      ttlMinutes: null,
       storage: { type: 'vault_persistent', mountPath: '/mockhive/data' },
       tunnelProvider: 'tmate',
       status: 'stopped',
@@ -94,7 +94,7 @@ function loadDefaultDeployedResources() {
       waggleId: 'waggle_etl_pipeline',
       name: 'Order-And-Fraud-Processing-Pipeline',
       startAt: 'ValidatePayload',
-      status: 'succeeded'
+      status: 'ready'
     },
     {
       waggleId: 'waggle_ai_workflow',
@@ -422,14 +422,15 @@ function renderDashboardFeed() {
 
   let html = '';
   nodesList.forEach(n => {
+    const isRunning = n.status === 'running';
     html += `
       <div class="node-card" style="margin-bottom: 10px;">
         <div class="node-header">
           <div>
             <h4>🏰 ${n.name}</h4>
-            <span class="node-id">${n.nodeId} • ${n.lifecycleMode}</span>
+            <span class="node-id">${n.nodeId} • ${n.lifecycleMode === 'lazarus_24_7' ? '24/7 Lazarus' : 'TTL Efímero'}</span>
           </div>
-          <span class="status-tag ${n.status}">${n.status.toUpperCase()}</span>
+          <span class="status-tag ${n.status}">${isRunning ? 'EN EJECUCIÓN' : n.status === 'provisioning' ? 'APROVISIONANDO' : 'DETENIDO'}</span>
         </div>
         <div style="font-size: 0.8rem; color: var(--text-muted);">
           ${n.sshCommand ? `<code>${n.sshCommand}</code>` : 'Servidor detenido / pendiente de arranque'}
@@ -452,6 +453,9 @@ function renderNodesList() {
 
   let html = '';
   nodesList.forEach(n => {
+    const isRunning = n.status === 'running';
+    const isProvisioning = n.status === 'provisioning';
+
     html += `
       <div class="node-card">
         <div class="node-header">
@@ -459,10 +463,10 @@ function renderNodesList() {
             <h4>${n.name}</h4>
             <span class="node-id">${n.nodeId} • ${n.osImage}</span>
           </div>
-          <span class="status-tag ${n.status}">${n.status.toUpperCase()}</span>
+          <span class="status-tag ${n.status}">${isRunning ? 'EN EJECUCIÓN' : isProvisioning ? 'APROVISIONANDO RUNNER ⚡' : 'DETENIDO'}</span>
         </div>
         <div class="node-details">
-          <div><strong>Ciclo:</strong> ${n.lifecycleMode} (${n.ttlMinutes}m)</div>
+          <div><strong>Ciclo:</strong> ${n.lifecycleMode === 'lazarus_24_7' ? '24/7 Lazarus Relay' : `TTL (${n.ttlMinutes || 120}m)`}</div>
           <div><strong>Storage:</strong> ${n.storage.type}</div>
           <div><strong>Tunnel:</strong> ${n.tunnelProvider}</div>
         </div>
@@ -473,17 +477,17 @@ function renderNodesList() {
           </div>
         ` : `
           <div class="ssh-pending-box">
-            <span>Servidor detenido. Pulsa "⚡ Iniciar Servidor" para despachar un runner real de GitHub Actions y generar el túnel SSH.</span>
+            <span>${isProvisioning ? '⚡ Lanzando runner en GitHub Actions y generando endpoint SSH...' : 'Servidor detenido. Pulsa "⚡ Iniciar Servidor" para despachar un runner real de GitHub Actions y generar el túnel SSH.'}</span>
           </div>
         `}
         <div class="node-actions">
-          ${n.status === 'running' ? 
+          ${isRunning ? 
             `<button class="btn-sm btn-secondary" onclick="stopNode('${n.nodeId}')">🛑 Parar Servidor</button>` : 
-            n.status === 'provisioning' ?
-            `<button class="btn-sm btn-secondary" disabled>⏳ Aprovisionando Runner...</button>` :
+            isProvisioning ?
+            `<button class="btn-sm btn-secondary" disabled style="opacity: 0.7;">⏳ Aprovisionando Runner...</button>` :
             `<button class="btn-sm btn-primary" onclick="startNode('${n.nodeId}')">⚡ Iniciar Servidor</button>`
           }
-          <button class="btn-sm btn-secondary" onclick="openNodeShell('${n.nodeId}')" ${n.status !== 'running' ? 'disabled style="opacity: 0.5;"' : ''}>🖥️ Web Shell</button>
+          <button class="btn-sm btn-secondary" onclick="openNodeShell('${n.nodeId}')" ${!isRunning ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>🖥️ Web Shell</button>
           <button class="btn-sm btn-secondary" onclick="openEditModal('${n.nodeId}')">⚙️ Editar</button>
           <button class="btn-sm btn-secondary" onclick="deleteNode('${n.nodeId}')">🗑️ Eliminar</button>
         </div>
@@ -504,7 +508,7 @@ function handleCreateNode(e) {
   const name = document.getElementById('node-name').value;
   const osImage = document.getElementById('node-os').value;
   const lifecycleMode = document.getElementById('node-lifecycle').value;
-  const ttlMinutes = parseInt(document.getElementById('node-ttl').value, 10);
+  const ttlMinutes = lifecycleMode === 'lazarus_24_7' ? null : parseInt(document.getElementById('node-ttl').value, 10);
   const storageType = document.getElementById('node-storage-type').value;
   const tunnelProvider = document.getElementById('node-tunnel').value;
 
@@ -525,7 +529,7 @@ function handleCreateNode(e) {
   nodesList.push(newNode);
   persistToGitHub();
   renderAll();
-  showToast(`HiveNode '${name}' aprovisionado. Pulsa Iniciar para arrancar el runner.`);
+  showToast(`HiveNode '${name}' aprovisionado en modo ${lifecycleMode === 'lazarus_24_7' ? '24/7' : 'TTL'}`);
   logTelemetry(`[Node Created] ${newNode.name} registered in mode ${newNode.lifecycleMode}`);
 }
 
@@ -646,10 +650,13 @@ function copySSHCommand(cmd) {
 function onLifecycleChange() {
   const val = document.getElementById('node-lifecycle').value;
   const warn = document.getElementById('node-247-warning');
+  const ttlRow = document.getElementById('ttl-row');
   if (val === 'lazarus_24_7') {
     warn.classList.remove('hidden');
+    if (ttlRow) ttlRow.classList.add('hidden');
   } else {
     warn.classList.add('hidden');
+    if (ttlRow) ttlRow.classList.remove('hidden');
   }
 }
 
@@ -913,7 +920,7 @@ function handleSaveNodeEdit(e) {
   if (node) {
     node.name = document.getElementById('edit-node-name').value;
     node.lifecycleMode = document.getElementById('edit-node-lifecycle').value;
-    node.ttlMinutes = parseInt(document.getElementById('edit-node-ttl').value, 10);
+    node.ttlMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : parseInt(document.getElementById('edit-node-ttl').value, 10);
     persistToGitHub();
     renderAll();
     closeEditModal();
