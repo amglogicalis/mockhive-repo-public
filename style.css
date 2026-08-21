@@ -857,3 +857,135 @@ body {
   margin-top: 4px;
   line-height: 1.3;
 }
+
+/* LIVE CONNECTION HUB STYLING */
+.shell-hub-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #0a0a0a;
+}
+
+.shell-connection-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #111111;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.shell-icon-col {
+  font-size: 2rem;
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.shell-info-col h4 {
+  font-size: 1.1rem;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.shell-info-col p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.shell-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.shell-action-box {
+  background: #111111;
+  border: 1px solid #282828;
+  border-radius: 8px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.shell-action-box:hover {
+  border-color: #444444;
+}
+
+.action-box-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.action-box-header .box-icon {
+  font-size: 1.5rem;
+}
+
+.action-box-header h5 {
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.action-box-header small {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+  display: block;
+}
+
+.ssh-command-display {
+  background: #000000;
+  border: 1px solid #333333;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #ffffff;
+  overflow-x: auto;
+}
+
+.ssh-command-display code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+.shell-telemetry-box {
+  background: #000000;
+  border: 1px solid #222222;
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-sub);
+}
+
+.telemetry-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.shell-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid #1a1a1a;
+}

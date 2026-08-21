@@ -568,21 +568,67 @@
 
   <!-- MODAL: WEB SHELL (FOR HIVENODE) -->
   <div id="modal-node-shell" class="modal-backdrop hidden">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
       <div class="modal-header">
         <div class="shell-header-left">
-          <h3 id="shell-modal-title">🖥️ Web Shell Session</h3>
-          <span class="badge-tag live-badge">En vivo (Ubuntu 24.04 LTS)</span>
+          <h3 id="shell-modal-title">🖥️ Web Shell & Conexión Live</h3>
+          <span class="badge-tag live-badge" id="shell-live-status">Conectado (Ubuntu 24.04)</span>
         </div>
-        <div class="shell-header-actions">
-          <button class="btn-sm btn-secondary" id="btn-open-new-tab" onclick="openShellInNewTab()">🌐 Abrir en Pestaña Nueva</button>
-          <button class="btn-sm btn-secondary" id="btn-copy-modal-ssh" onclick="copyModalSSH()">📋 Copiar SSH</button>
-          <button class="modal-close" onclick="closeNodeShellModal()">✕</button>
-        </div>
+        <button class="modal-close" onclick="closeNodeShellModal()">✕</button>
       </div>
-      <div class="modal-body shell-modal-body">
-        <div id="shell-iframe-container" class="shell-iframe-wrapper">
-          <iframe id="shell-live-iframe" class="shell-live-iframe" src="" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+      <div class="modal-body shell-hub-body">
+        <div class="shell-connection-card">
+          <div class="shell-icon-col">⚡</div>
+          <div class="shell-info-col">
+            <h4 id="shell-node-name">Master-Production-Worker</h4>
+            <p id="shell-node-desc">Runner activo en GitHub Actions con servidor Tmate inverso.</p>
+          </div>
+        </div>
+
+        <div class="shell-options-grid">
+          <!-- Web Terminal Direct Option -->
+          <div class="shell-action-box">
+            <div class="action-box-header">
+              <span class="box-icon">🌐</span>
+              <div>
+                <h5>Terminal Web Interactiva</h5>
+                <small>Acceso completo xterm.js directo en navegador sin instalar nada</small>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="openShellInNewTab()">🚀 Abrir Terminal Web (Live Session)</button>
+          </div>
+
+          <!-- Direct SSH Option -->
+          <div class="shell-action-box">
+            <div class="action-box-header">
+              <span class="box-icon">💻</span>
+              <div>
+                <h5>Conexión SSH por Consola</h5>
+                <small>Pega este comando en tu PowerShell, CMD o Terminal Linux</small>
+              </div>
+            </div>
+            <div class="ssh-command-display">
+              <code id="modal-ssh-cmd">ssh ...</code>
+              <button class="btn-sm btn-secondary" onclick="copyModalSSH()">Copiar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Details Box -->
+        <div class="shell-telemetry-box">
+          <div class="telemetry-row">
+            <span><strong>Runner OS:</strong> Ubuntu 24.04 LTS (x86_64)</span>
+            <span><strong>Túnel:</strong> Tmate Encrypted Reverse Proxy</span>
+          </div>
+          <div class="telemetry-row">
+            <span><strong>Almacenamiento:</strong> /mockhive/data (Persistente)</span>
+            <span><strong>Protocolo:</strong> SSH v2 / WebSocket PTY</span>
+          </div>
+        </div>
+
+        <div class="shell-footer-actions">
+          <button class="btn-sm btn-secondary" onclick="relaunchActiveRunner()">⚡ Re-lanzar Runner Nuevo</button>
+          <button class="btn-sm btn-secondary" onclick="closeNodeShellModal()">Cerrar</button>
         </div>
       </div>
     </div>
