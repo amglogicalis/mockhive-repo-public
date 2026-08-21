@@ -633,6 +633,10 @@ body {
   overflow: hidden;
 }
 
+.modal-dialog.modal-lg {
+  max-width: 820px;
+}
+
 .modal-header {
   padding: 16px 20px;
   display: flex;

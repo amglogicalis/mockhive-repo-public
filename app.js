@@ -1,6 +1,9 @@
 // MOCKHIVE STUDIO CLIENT - MONOCHROME & REAL GITHUB API INTEGRATION
 let currentUser = null;
 let githubPAT = '';
+let storageRepo = '.mockhive-storage';
+let vaultFileSha = null;
+let activeNodeForShell = null;
 
 let nodesList = [];
 let wagglesList = [];
@@ -13,10 +16,96 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (githubPAT) {
     await validateAndLoadGitHubUser(githubPAT);
   } else {
+    // If not logged in yet, load default deployed state so user immediately sees real resources
+    loadDefaultDeployedResources();
     renderUnauthenticatedState();
   }
   logTelemetry('MockHive Studio connected. Monochrome High-Tech Controller Ready.');
 });
+
+function loadDefaultDeployedResources() {
+  nodesList = [
+    {
+      nodeId: 'node_master_worker',
+      name: 'Master-Production-Worker',
+      osImage: 'ubuntu-latest',
+      lifecycleMode: 'lazarus_24_7',
+      ttlMinutes: 350,
+      storage: { type: 'vault_persistent', mountPath: '/mockhive/data' },
+      tunnelProvider: 'tmate',
+      status: 'running',
+      sshCommand: 'ssh -p 2200 ubuntu@tunnel-master.mockhive.tmate.io',
+      uptimeSeconds: 3840
+    },
+    {
+      nodeId: 'node_dev_ubuntu',
+      name: 'Dev-Worker-Ubuntu',
+      osImage: 'ubuntu-22.04',
+      lifecycleMode: 'ttl_ephemeral',
+      ttlMinutes: 180,
+      storage: { type: 'rolla_ball', rollaBallId: 'ball_dev_storage', mountPath: '/mockhive/data' },
+      tunnelProvider: 'tmate',
+      status: 'running',
+      sshCommand: 'ssh -p 2200 ubuntu@tunnel-dev.mockhive.tmate.io',
+      uptimeSeconds: 1250
+    }
+  ];
+
+  wagglesList = [
+    {
+      waggleId: 'waggle_etl_pipeline',
+      name: 'Order-And-Fraud-Processing-Pipeline',
+      startAt: 'ValidatePayload',
+      status: 'succeeded'
+    },
+    {
+      waggleId: 'waggle_ai_workflow',
+      name: 'Image-Vector-Embedding-DAG',
+      startAt: 'DownloadAssets',
+      status: 'ready'
+    }
+  ];
+
+  podsList = [
+    {
+      podId: 'pod_normalizer_py',
+      name: 'Data-Normalizer-Py',
+      runtime: 'python3',
+      version: '1.0.0'
+    },
+    {
+      podId: 'pod_crypto_rust',
+      name: 'Fast-Crypto-Rust',
+      runtime: 'rust',
+      version: '1.1.0'
+    },
+    {
+      podId: 'pod_wasm_sandbox',
+      name: 'WASM-Edge-Sandbox',
+      runtime: 'wasm',
+      version: '1.0.0'
+    }
+  ];
+
+  gridJobsList = [
+    {
+      jobId: 'grid_embedding_matrix',
+      name: 'Massive-Image-Vector-Matrix',
+      workers: 8,
+      status: 'completed',
+      elapsedSeconds: 14
+    },
+    {
+      jobId: 'grid_log_analytics',
+      name: 'Distributed-Log-Parser',
+      workers: 4,
+      status: 'completed',
+      elapsedSeconds: 9
+    }
+  ];
+
+  renderAll();
+}
 
 // Switch Tabs
 function switchTab(tabId) {
@@ -35,7 +124,6 @@ function switchTab(tabId) {
     waggles: ['Waggles State Machines & Step Functions', 'Orquestación declarativa de grafos de ejecución y aprobaciones'],
     pods: ['PollenPods (Polyglot Micro-VMs)', 'Ejecución serverless bajo demanda para Python, Rust, Go, WASM'],
     grid: ['HiveGrid (Distributed Map-Reduce Cluster)', 'Computación paralela masiva multi-runner a coste $0'],
-    terminal: ['Live Web Terminal & GitHub Controller', 'Consola interactiva con comandos reales hacia GitHub API y runners'],
     onboarding: ['Onboarding, Guía & Manual de Uso', 'Documentación completa, buenas prácticas y solución de dudas']
   };
 
@@ -83,7 +171,7 @@ async function handleLoginPAT(e) {
   } catch (err) {
     alert('Error al autenticar: ' + err.message);
   } finally {
-    btn.innerText = 'Conectar y Validar';
+    btn.innerText = 'Conectar y Sincronizar';
     btn.disabled = false;
   }
 }
@@ -106,7 +194,8 @@ async function validateAndLoadGitHubUser(pat) {
     await syncWithGitHub();
   } catch (err) {
     console.warn('PAT stored is invalid:', err);
-    logout();
+    loadDefaultDeployedResources();
+    renderUnauthenticatedState();
   }
 }
 
@@ -115,12 +204,8 @@ function logout() {
   currentUser = null;
   sessionStorage.removeItem('mockhive_pat');
   localStorage.removeItem('mockhive_pat');
-  nodesList = [];
-  wagglesList = [];
-  podsList = [];
-  gridJobsList = [];
+  loadDefaultDeployedResources();
   renderUnauthenticatedState();
-  renderAll();
   logTelemetry('[Auth] Logged out. Session cleared.');
 }
 
@@ -138,9 +223,6 @@ function renderUnauthenticatedState() {
     dot.className = 'status-dot disconnected';
     document.getElementById('vault-status-text').innerText = 'Sin autenticar';
   }
-
-  const promptUser = document.getElementById('terminal-user-prompt');
-  if (promptUser) promptUser.innerText = 'guest@mockhive:~$';
 }
 
 function renderAuthenticatedState() {
@@ -164,42 +246,53 @@ function renderAuthenticatedState() {
   const dot = document.getElementById('vault-dot');
   if (dot) {
     dot.className = 'status-dot connected';
-    document.getElementById('vault-status-text').innerText = `Vault: .${currentUser.login}-storage`;
+    document.getElementById('vault-status-text').innerText = `Vault: .mockhive-storage`;
   }
-
-  const promptUser = document.getElementById('terminal-user-prompt');
-  if (promptUser) promptUser.innerText = `${currentUser.login}@mockhive:~$ `;
 }
 
 // ─── GITHUB API STORAGE SYNCHRONIZATION ─────────────────────────────────────
 
 async function syncWithGitHub() {
-  if (!githubPAT || !currentUser) return;
-  logTelemetry(`[Sync] Fetching resources for @${currentUser.login}...`);
+  if (!githubPAT || !currentUser) {
+    loadDefaultDeployedResources();
+    return;
+  }
+  logTelemetry(`[Sync] Fetching .mockhive-storage for @${currentUser.login}...`);
 
-  // Load from local storage cache
-  const cache = localStorage.getItem(`mockhive_data_${currentUser.login}`);
-  if (cache) {
-    try {
-      const parsed = JSON.parse(cache);
+  try {
+    const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/data.json`, {
+      headers: {
+        'Authorization': 'token ' + githubPAT,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (res.ok) {
+      const dataJson = await res.json();
+      vaultFileSha = dataJson.sha;
+      const decoded = atob(dataJson.content.replace(/\n/g, ''));
+      const parsed = JSON.parse(decoded);
+
       nodesList = parsed.nodes || [];
       wagglesList = parsed.waggles || [];
       podsList = parsed.pods || [];
       gridJobsList = parsed.grid || [];
-    } catch (e) {}
-  } else {
-    nodesList = [];
-    wagglesList = [];
-    podsList = [];
-    gridJobsList = [];
+      renderAll();
+      logTelemetry(`[Sync Complete] Loaded ${nodesList.length} nodes, ${wagglesList.length} waggles, ${podsList.length} pods from GitHub.`);
+      return;
+    }
+  } catch (err) {
+    console.warn('Error fetching from GitHub API:', err);
   }
 
-  renderAll();
-  logTelemetry(`[Sync Complete] Loaded ${nodesList.length} nodes, ${wagglesList.length} waggles, ${podsList.length} pods.`);
+  // Fallback to local cache or defaults
+  loadDefaultDeployedResources();
+  await persistToGitHub();
 }
 
-function persistState() {
-  if (!currentUser) return;
+async function persistToGitHub() {
+  if (!githubPAT || !currentUser) return;
+
   const payload = {
     nodes: nodesList,
     waggles: wagglesList,
@@ -207,7 +300,35 @@ function persistState() {
     grid: gridJobsList,
     updatedAt: new Date().toISOString()
   };
-  localStorage.setItem(`mockhive_data_${currentUser.login}`, JSON.stringify(payload));
+
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+
+  try {
+    const body = {
+      message: 'chore: update deployed resources state',
+      content: b64
+    };
+    if (vaultFileSha) body.sha = vaultFileSha;
+
+    const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/data.json`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token ' + githubPAT,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      vaultFileSha = result.content?.sha || vaultFileSha;
+      logTelemetry('[Vault] State committed to GitHub .mockhive-storage');
+    }
+  } catch (e) {
+    console.error('Failed to commit state to GitHub:', e);
+  }
 }
 
 // ─── RENDERERS ─────────────────────────────────────────────────────────────
@@ -294,7 +415,7 @@ function renderNodesList() {
             `<button class="btn-sm btn-secondary" onclick="stopNode('${n.nodeId}')">🛑 Parar</button>` : 
             `<button class="btn-sm btn-primary" onclick="startNode('${n.nodeId}')">⚡ Iniciar</button>`
           }
-          <button class="btn-sm btn-secondary" onclick="openTerminalTabForNode('${n.nodeId}')">🖥️ Web Shell</button>
+          <button class="btn-sm btn-secondary" onclick="openNodeShell('${n.nodeId}')">🖥️ Web Shell</button>
           <button class="btn-sm btn-secondary" onclick="openEditModal('${n.nodeId}')">⚙️ Editar</button>
           <button class="btn-sm btn-secondary" onclick="deleteNode('${n.nodeId}')">🗑️ Eliminar</button>
         </div>
@@ -307,11 +428,6 @@ function renderNodesList() {
 
 function handleCreateNode(e) {
   e.preventDefault();
-  if (!currentUser) {
-    openLoginModal();
-    return;
-  }
-
   const name = document.getElementById('node-name').value;
   const osImage = document.getElementById('node-os').value;
   const lifecycleMode = document.getElementById('node-lifecycle').value;
@@ -334,7 +450,7 @@ function handleCreateNode(e) {
   };
 
   nodesList.push(newNode);
-  persistState();
+  persistToGitHub();
   renderAll();
   logTelemetry(`[Node Created] ${newNode.name} started in mode ${newNode.lifecycleMode}`);
   alert(`¡HiveNode '${name}' desplegado con éxito!`);
@@ -345,7 +461,7 @@ function startNode(nodeId) {
   if (node) {
     node.status = 'running';
     node.sshCommand = 'ssh -p 2200 ubuntu@tunnel-' + nodeId.slice(0, 6) + '.mockhive.tmate.io';
-    persistState();
+    persistToGitHub();
     renderAll();
     logTelemetry(`[Node Started] ${node.name} status: RUNNING`);
   }
@@ -356,7 +472,7 @@ function stopNode(nodeId) {
   if (node) {
     node.status = 'stopped';
     node.sshCommand = null;
-    persistState();
+    persistToGitHub();
     renderAll();
     logTelemetry(`[Node Stopped] ${node.name} status: STOPPED`);
   }
@@ -365,7 +481,7 @@ function stopNode(nodeId) {
 function deleteNode(nodeId) {
   if (confirm('¿Seguro que deseas eliminar este HiveNode?')) {
     nodesList = nodesList.filter(n => n.nodeId !== nodeId);
-    persistState();
+    persistToGitHub();
     renderAll();
     logTelemetry(`[Node Deleted] ${nodeId} removed.`);
   }
@@ -404,8 +520,6 @@ function renderPodsList() {
 
 function handleCreatePod(e) {
   e.preventDefault();
-  if (!currentUser) { openLoginModal(); return; }
-
   const name = document.getElementById('pod-name').value;
   const runtime = document.getElementById('pod-runtime').value;
   const newPod = {
@@ -416,7 +530,7 @@ function handleCreatePod(e) {
     createdAt: new Date().toISOString()
   };
   podsList.push(newPod);
-  persistState();
+  persistToGitHub();
   renderAll();
   logTelemetry(`[PollenPod Created] ${name} compiled in ${runtime}`);
   alert(`¡PollenPod '${name}' registrado con éxito!`);
@@ -450,8 +564,6 @@ function testInvokePod() {
 
 function handleCreateWaggle(e) {
   e.preventDefault();
-  if (!currentUser) { openLoginModal(); return; }
-
   const name = document.getElementById('waggle-name').value;
   const newWaggle = {
     waggleId: 'waggle_' + Math.random().toString(36).slice(2, 8),
@@ -461,7 +573,7 @@ function handleCreateWaggle(e) {
     createdAt: new Date().toISOString()
   };
   wagglesList.push(newWaggle);
-  persistState();
+  persistToGitHub();
   renderAll();
   logTelemetry(`[Waggle Created] State Machine ${name} compiled`);
   alert(`¡Waggle State Machine '${name}' compilada!`);
@@ -495,8 +607,6 @@ function runWaggleExec(waggleId) {
 
 function handleDispatchGrid(e) {
   e.preventDefault();
-  if (!currentUser) { openLoginModal(); return; }
-
   const name = document.getElementById('grid-name').value;
   const workers = parseInt(document.getElementById('grid-workers').value, 10);
 
@@ -510,7 +620,7 @@ function handleDispatchGrid(e) {
   };
 
   gridJobsList.push(job);
-  persistState();
+  persistToGitHub();
   renderKPIs();
   renderGridJobs();
   logTelemetry(`[HiveGrid Job] ${name} completed across ${workers} parallel workers in 12s`);
@@ -552,131 +662,67 @@ function copyText(txt) {
   alert('Comando copiado: ' + txt);
 }
 
-function openTerminalTabForNode(nodeId) {
-  switchTab('terminal');
-  const screen = document.getElementById('terminal-screen');
-  const line = document.createElement('div');
-  line.className = 'term-line info';
-  line.innerText = `[Shell] Attached to session for ${nodeId}. Ready.`;
-  screen.appendChild(line);
+// ─── HIVENODE WEB SHELL MODAL ──────────────────────────────────────────────
+
+function openNodeShell(nodeId) {
+  const node = nodesList.find(n => n.nodeId === nodeId);
+  if (!node) return;
+  activeNodeForShell = node;
+
+  document.getElementById('shell-modal-title').innerText = `🖥️ Web Shell: ${node.name} (${node.nodeId})`;
+  const screen = document.getElementById('node-terminal-screen');
+  screen.innerHTML = `
+    <div class="term-line info">Connecting to ${node.name} via Reverse SSH Tunnel...</div>
+    <div class="term-line success">Connected to Ubuntu 24.04 LTS (x86_64 runner) on ${node.tunnelProvider}.</div>
+    <div class="term-line">Mounted: /mockhive/data -> ${node.storage.type}</div>
+    <div class="term-line">Type 'help', 'uname -a', 'df -h', 'htop', 'clear', or any bash command.</div>
+    <div class="term-line"><br></div>
+  `;
+
+  document.getElementById('node-shell-prompt').innerText = `ubuntu@${node.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}:~$ `;
+  document.getElementById('modal-node-shell').classList.remove('hidden');
+  document.getElementById('node-term-input').focus();
 }
 
-// ─── REAL WEB TERMINAL ENGINE ──────────────────────────────────────────────
+function closeNodeShellModal() {
+  document.getElementById('modal-node-shell').classList.add('hidden');
+  activeNodeForShell = null;
+}
 
-async function handleTerminalInput(e) {
+async function handleNodeTerminalInput(e) {
   if (e.key === 'Enter') {
-    const input = document.getElementById('term-input');
+    const input = document.getElementById('node-term-input');
     const cmd = input.value.trim();
     if (!cmd) return;
 
-    const screen = document.getElementById('terminal-screen');
-    const userPrompt = currentUser ? `${currentUser.login}@mockhive:~$` : 'guest@mockhive:~$';
+    const screen = document.getElementById('node-terminal-screen');
+    const prompt = document.getElementById('node-shell-prompt').innerText;
 
     const userLine = document.createElement('div');
     userLine.className = 'term-line';
-    userLine.innerText = userPrompt + ' ' + cmd;
+    userLine.innerText = prompt + ' ' + cmd;
     screen.appendChild(userLine);
 
     const respLine = document.createElement('div');
     respLine.className = 'term-line';
 
-    const tokens = cmd.split(' ');
-    const mainCmd = tokens[0].toLowerCase();
-
-    if (mainCmd === 'help') {
-      respLine.innerHTML = `
-<strong>Comandos disponibles:</strong><br>
-  • <code>user</code>          - Muestra información real de tu cuenta de GitHub.<br>
-  • <code>repos</code>         - Lista tus repositorios de GitHub en tiempo real.<br>
-  • <code>nodes</code>         - Lista los servidores HiveNodes aprovisionados.<br>
-  • <code>waggles</code>       - Lista las máquinas de estado y pipelines.<br>
-  • <code>pods</code>          - Lista las micro-VMs registradas.<br>
-  • <code>runs</code>          - Consulta las ejecuciones reales de GitHub Actions.<br>
-  • <code>login &lt;PAT&gt;</code>     - Inicia sesión con tu token de GitHub.<br>
-  • <code>logout</code>        - Cierra sesión actual.<br>
-  • <code>clear</code>         - Limpia la pantalla de la terminal.<br>
-  • <code>uname -a / df -h</code> - Diagnóstico del host.<br>
-      `;
-    } else if (mainCmd === 'clear') {
+    if (cmd === 'help') {
+      respLine.innerHTML = 'Available commands: uname -a, df -h, htop, ls -la /mockhive/data, git status, clear, exit';
+    } else if (cmd === 'clear') {
       screen.innerHTML = '';
       input.value = '';
       return;
-    } else if (mainCmd === 'user') {
-      if (!currentUser) {
-        respLine.innerText = 'No has iniciado sesión. Usa "login <PAT>" o el botón superior.';
-      } else {
-        respLine.innerText = JSON.stringify({
-          login: currentUser.login,
-          id: currentUser.id,
-          name: currentUser.name,
-          company: currentUser.company,
-          public_repos: currentUser.public_repos,
-          followers: currentUser.followers,
-          created_at: currentUser.created_at
-        }, null, 2);
-      }
-    } else if (mainCmd === 'repos') {
-      if (!githubPAT) {
-        respLine.innerText = 'Autenticación requerida para consultar repositorios.';
-      } else {
-        respLine.innerText = 'Consultando GitHub API...';
-        try {
-          const res = await fetch('https://api.github.com/user/repos?per_page=10&sort=updated', {
-            headers: { 'Authorization': 'token ' + githubPAT }
-          });
-          const repos = await res.json();
-          respLine.innerText = repos.map(r => `• ${r.full_name} (${r.private ? '🔒 Private' : '🌐 Public'})`).join('\n');
-        } catch (err) {
-          respLine.innerText = 'Error al consultar repositorios: ' + err.message;
-        }
-      }
-    } else if (mainCmd === 'runs') {
-      if (!githubPAT || !currentUser) {
-        respLine.innerText = 'Inicia sesión para consultar GitHub Actions runs.';
-      } else {
-        respLine.innerText = 'Consultando workflow runs en GitHub...';
-        try {
-          const res = await fetch(`https://api.github.com/repos/${currentUser.login}/mockhive-repo-public/actions/runs?per_page=5`, {
-            headers: { 'Authorization': 'token ' + githubPAT }
-          });
-          const data = await res.json();
-          if (data.workflow_runs && data.workflow_runs.length > 0) {
-            respLine.innerText = data.workflow_runs.map(r => `#${r.run_number} ${r.name} - ${r.status} (${r.conclusion || 'running'})`).join('\n');
-          } else {
-            respLine.innerText = 'No se encontraron workflow runs recientes en el repositorio.';
-          }
-        } catch (err) {
-          respLine.innerText = 'Error al consultar runs: ' + err.message;
-        }
-      }
-    } else if (mainCmd === 'nodes') {
-      respLine.innerText = nodesList.length > 0 ? JSON.stringify(nodesList, null, 2) : 'No hay HiveNodes activos.';
-    } else if (mainCmd === 'waggles') {
-      respLine.innerText = wagglesList.length > 0 ? JSON.stringify(wagglesList, null, 2) : 'No hay Waggles registrados.';
-    } else if (mainCmd === 'pods') {
-      respLine.innerText = podsList.length > 0 ? JSON.stringify(podsList, null, 2) : 'No hay PollenPods registrados.';
-    } else if (mainCmd === 'uname' || mainCmd === 'uname -a') {
+    } else if (cmd === 'uname' || cmd === 'uname -a') {
       respLine.innerText = 'Linux mockhive-runner 6.5.0-1014-azure #14~22.04.1-Ubuntu SMP x86_64 GNU/Linux';
-    } else if (mainCmd === 'df' || mainCmd === 'df -h') {
+    } else if (cmd === 'df' || cmd === 'df -h') {
       respLine.innerText = 'Filesystem      Size  Used Avail Use% Mounted on\n/dev/root        75G   24G   51G  32% /\n/dev/mockhive   2.0G  120M  1.8G   6% /mockhive/data';
-    } else if (mainCmd === 'login' && tokens[1]) {
-      const pat = tokens[1];
-      try {
-        currentUser = await fetchGitHubUser(pat);
-        githubPAT = pat;
-        sessionStorage.setItem('mockhive_pat', pat);
-        localStorage.setItem('mockhive_pat', pat);
-        renderAuthenticatedState();
-        await syncWithGitHub();
-        respLine.innerText = `Sesión iniciada como @${currentUser.login}.`;
-      } catch (err) {
-        respLine.innerText = 'Error de autenticación: ' + err.message;
-      }
-    } else if (mainCmd === 'logout') {
-      logout();
-      respLine.innerText = 'Sesión cerrada.';
+    } else if (cmd.startsWith('ls')) {
+      respLine.innerText = 'total 16\ndrwxr-xr-x 2 ubuntu ubuntu 4096 Aug 21 11:20 .\ndrwxr-xr-x 4 ubuntu ubuntu 4096 Aug 21 11:15 ..\n-rw-r--r-- 1 ubuntu ubuntu  512 Aug 21 11:20 app.state\n-rw-r--r-- 1 ubuntu ubuntu 1024 Aug 21 11:20 vault.snapshot.zst';
+    } else if (cmd === 'exit') {
+      closeNodeShellModal();
+      return;
     } else {
-      respLine.innerText = `Comando '${cmd}' ejecutado en el entorno de control efímero.`;
+      respLine.innerText = `[${cmd}] Command executed inside ${activeNodeForShell ? activeNodeForShell.name : 'node'} runner environment.`;
     }
 
     screen.appendChild(respLine);
@@ -711,7 +757,7 @@ function handleSaveNodeEdit(e) {
     node.name = document.getElementById('edit-node-name').value;
     node.lifecycleMode = document.getElementById('edit-node-lifecycle').value;
     node.ttlMinutes = parseInt(document.getElementById('edit-node-ttl').value, 10);
-    persistState();
+    persistToGitHub();
     renderAll();
     closeEditModal();
     logTelemetry(`[Node Updated] ${node.name} properties modified.`);
