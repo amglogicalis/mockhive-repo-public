@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOCKHIVE Studio — $0 Cost Compute Cloud, Virtual Servers & Step Functions</title>
+  <link rel="icon" type="image/png" href="assets/logo_mockhive.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/logo_mockhive.png" alt="MockHive Logo" class="brand-logo">
+        <div class="brand-info">
+          <h2>MOCKHIVE</h2>
+          <span class="brand-tag">Compute Cloud $0</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" onclick="switchTab('dashboard')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Resource Monitor</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('nodes')">
+          <span class="nav-icon">🏰</span>
+          <span class="nav-label">HiveNodes (EC2)</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('waggles')">
+          <span class="nav-icon">🐝</span>
+          <span class="nav-label">Waggles (Step Functions)</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('pods')">
+          <span class="nav-icon">🌸</span>
+          <span class="nav-label">PollenPods (Micro-VMs)</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('grid')">
+          <span class="nav-icon">🕸️</span>
+          <span class="nav-label">HiveGrid (Map-Reduce)</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('onboarding')">
+          <span class="nav-icon">📖</span>
+          <span class="nav-label">Onboarding & Manual</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="vault-status">
+          <span class="pulse-dot"></span>
+          <span>Vault: <code>.mockhive-storage</code></span>
+        </div>
+        <div class="version-badge">v1.0.0 • Terra Ecosystem</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- HEADER -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1 id="page-title">Resource Monitor & Live Dashboard</h1>
+          <p id="page-subtitle">Monitoreo en tiempo real de infraestructura efímera, servidores activos y tareas distribuidas</p>
+        </div>
+
+        <div class="header-actions">
+          <div class="badge-status">
+            <span class="status-indicator online"></span>
+            <span>Zero-Cost Cloud Active</span>
+          </div>
+          <button class="btn btn-secondary" onclick="openTerminalModal()">🖥️ Web Terminal</button>
+          <button class="btn btn-primary" onclick="switchTab('nodes')">⚡ Nuevo Recurso</button>
+        </div>
+      </header>
+
+      <!-- TAB: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon">🏰</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpi-nodes">0</span>
+              <span class="kpi-label">HiveNodes Activos</span>
+            </div>
+            <div class="kpi-badge">Ubuntu Virtual Servers</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon">🐝</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpi-waggles">0</span>
+              <span class="kpi-label">Waggles State Machines</span>
+            </div>
+            <div class="kpi-badge">Step Functions</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon">🌸</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpi-pods">0</span>
+              <span class="kpi-label">PollenPods Registrados</span>
+            </div>
+            <div class="kpi-badge">Polyglot Micro-VMs</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon">🕸️</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="kpi-grid">0</span>
+              <span class="kpi-label">HiveGrid Jobs</span>
+            </div>
+            <div class="kpi-badge">Distributed Swarm</div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Active Resources -->
+          <div class="card">
+            <div class="card-header">
+              <h3>⚡ Recursos en Ejecución</h3>
+              <button class="btn-sm btn-secondary" onclick="renderAll()">Actualizar</button>
+            </div>
+            <div class="card-body">
+              <div id="active-resources-list" class="resource-feed">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Log Stream -->
+          <div class="card">
+            <div class="card-header">
+              <h3>📜 Stream de Telemetría y Eventos</h3>
+              <span class="badge-tag">En vivo</span>
+            </div>
+            <div class="card-body">
+              <div id="telemetry-log" class="terminal-log-box">
+                <div class="log-line info">[SYS] MockHive Engine initialized on localhost:7440</div>
+                <div class="log-line info">[SYS] Zero-Cost Compute Cloud ready. GitHub Actions runners available.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: HIVENODES -->
+      <section id="tab-nodes" class="tab-pane">
+        <div class="split-view">
+          <!-- Left: Provision Form -->
+          <div class="card">
+            <div class="card-header">
+              <h3>🏰 Provisionar Servidor HiveNode (EC2)</h3>
+              <span class="badge-tag">GitHub Actions Runner</span>
+            </div>
+            <div class="card-body">
+              <form id="form-create-node" onsubmit="handleCreateNode(event)">
+                <div class="form-group">
+                  <label>Nombre del Servidor</label>
+                  <input type="text" id="node-name" class="input-field" placeholder="ej. Ubuntu-Dev-Server" required>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Sistema Operativo</label>
+                    <select id="node-os" class="input-field">
+                      <option value="ubuntu-latest">Ubuntu Latest (24.04 LTS)</option>
+                      <option value="ubuntu-22.04">Ubuntu 22.04 LTS</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Ciclo de Vida</label>
+                    <select id="node-lifecycle" class="input-field" onchange="onLifecycleChange()">
+                      <option value="ttl_ephemeral">TTL Efímero (Apagado automático)</option>
+                      <option value="lazarus_24_7">24/7 Lazarus Relay (Auto-Relevo Continuo)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 24/7 Warning Alert Box -->
+                <div id="node-247-warning" class="alert-box warning hidden">
+                  ⚠️ <strong>Aviso de ToS de GitHub:</strong> El modo 24/7 mantiene el runner activo mediante auto-disparos recursivos antes del timeout de 6h. El uso abusivo o descuidado puede infringir los Términos de GitHub y causar la suspensión de la cuenta. Usa con responsabilidad.
+                </div>
+
+                <div class="form-row" id="ttl-row">
+                  <div class="form-group">
+                    <label>Tiempo de Vida (TTL Minutos)</label>
+                    <input type="number" id="node-ttl" class="input-field" value="120" min="15" max="350">
+                  </div>
+                  <div class="form-group">
+                    <label>Apagado por Inactividad (Minutos)</label>
+                    <input type="number" id="node-inactivity" class="input-field" value="15" min="5" max="120">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Almacenamiento y Persistencia</label>
+                  <select id="node-storage-type" class="input-field" onchange="onStorageTypeChange()">
+                    <option value="vault_persistent">Vault Snapshot Persistente (.tar.zst + Releases)</option>
+                    <option value="rolla_ball">Rolla-Ball (Terra Object Storage $0)</option>
+                    <option value="s3_custom">S3 Compatible (AWS S3, Cloudflare R2, MinIO)</option>
+                    <option value="ephemeral">Efímero Puro (Volátil, se borra al parar)</option>
+                  </select>
+                </div>
+
+                <!-- Rolla-Ball Sub-Config -->
+                <div id="storage-rolla-config" class="sub-form-box hidden">
+                  <div class="form-group">
+                    <label>ID de la Rolla-Ball (o nueva a crear)</label>
+                    <input type="text" id="rolla-ball-id" class="input-field" placeholder="ej. ball_my_dev_storage">
+                  </div>
+                  <div class="form-group">
+                    <label>PAT de GitHub (Opcional si usa cuenta diferente)</label>
+                    <input type="password" id="rolla-pat" class="input-field" placeholder="ghp_...">
+                  </div>
+                </div>
+
+                <!-- S3 Sub-Config -->
+                <div id="storage-s3-config" class="sub-form-box hidden">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>S3 Endpoint</label>
+                      <input type="text" id="s3-endpoint" class="input-field" placeholder="https://s3.amazonaws.com">
+                    </div>
+                    <div class="form-group">
+                      <label>Bucket</label>
+                      <input type="text" id="s3-bucket" class="input-field" placeholder="my-mockhive-bucket">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Access Key</label>
+                      <input type="text" id="s3-access-key" class="input-field" placeholder="AKIA...">
+                    </div>
+                    <div class="form-group">
+                      <label>Secret Key</label>
+                      <input type="password" id="s3-secret-key" class="input-field" placeholder="Secret...">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Protocolo de Conexión & Túnel SSH</label>
+                  <select id="node-tunnel" class="input-field" onchange="onTunnelChange()">
+                    <option value="tmate">Tmate SSH (Automático, Cero Configuración)</option>
+                    <option value="bore">Bore Reverse Proxy (Puerto TCP Directo)</option>
+                    <option value="web_terminal">Web Terminal WebSocket (xterm.js en navegador)</option>
+                    <option value="cloudflare_tunnel">Cloudflare Zero Trust Tunnel</option>
+                    <option value="tailscale">Tailscale Ephemeral Node (Mesh VPN)</option>
+                  </select>
+                </div>
+
+                <div id="tunnel-tailscale-config" class="sub-form-box hidden">
+                  <div class="form-group">
+                    <label>Tailscale Ephemeral Auth Key</label>
+                    <input type="password" id="tailscale-key" class="input-field" placeholder="tskey-auth-...">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Script de Inicialización (Init Script)</label>
+                  <textarea id="node-init-script" class="input-field code-textarea" rows="3" placeholder="# Comandos para ejecutar al arrancar&#10;sudo apt update && sudo apt install -y git curl&#10;echo 'Node listo'"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">🚀 Desplegar HiveNode</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right: Nodes Inventory -->
+          <div class="card">
+            <div class="card-header">
+              <h3>📋 Inventario de HiveNodes</h3>
+              <button class="btn-sm btn-secondary" onclick="renderNodesList()">Refrescar</button>
+            </div>
+            <div class="card-body">
+              <div id="nodes-inventory-list" class="nodes-list-container">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: WAGGLES -->
+      <section id="tab-waggles" class="tab-pane">
+        <div class="split-view">
+          <!-- Left: State Machine Designer -->
+          <div class="card">
+            <div class="card-header">
+              <h3>🐝 Diseñador de Step Functions (Waggles)</h3>
+              <span class="badge-tag">State Machine DAG</span>
+            </div>
+            <div class="card-body">
+              <form id="form-create-waggle" onsubmit="handleCreateWaggle(event)">
+                <div class="form-group">
+                  <label>Nombre de la State Machine</label>
+                  <input type="text" id="waggle-name" class="input-field" placeholder="ej. Order-Processing-Pipeline" required>
+                </div>
+
+                <div class="form-group">
+                  <label>Definición de Estados (JSON / YAML)</label>
+                  <textarea id="waggle-states-json" class="input-field code-textarea" rows="12">{
+  "StartAt": "ExtractPayload",
+  "States": {
+    "ExtractPayload": {
+      "Type": "Task",
+      "Comment": "Lee y parsea datos entrantes",
+      "Next": "EvaluateQuality"
+    },
+    "EvaluateQuality": {
+      "Type": "Choice",
+      "Choices": [
+        { "Variable": "score", "Operator": "gt", "Value": 80, "Next": "PublishResult" }
+      ],
+      "Default": "HumanReviewCheckpoint"
+    },
+    "HumanReviewCheckpoint": {
+      "Type": "WaitForCallback",
+      "Comment": "Pausa requerida para aprobación de supervisor",
+      "Next": "PublishResult"
+    },
+    "PublishResult": {
+      "Type": "Succeed"
+    }
+  }
+}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">⚡ Crear State Machine</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right: Executions & DAG Tracker -->
+          <div class="card">
+            <div class="card-header">
+              <h3>⚡ Ejecuciones y Aprobaciones en Vivo</h3>
+              <button class="btn-sm btn-secondary" onclick="renderWagglesList()">Refrescar</button>
+            </div>
+            <div class="card-body">
+              <div id="waggles-executions-list">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: POLLENPODS -->
+      <section id="tab-pods" class="tab-pane">
+        <div class="split-view">
+          <!-- Left: Pod Creator -->
+          <div class="card">
+            <div class="card-header">
+              <h3>🌸 Crear Micro-VM Serverless (PollenPod)</h3>
+              <span class="badge-tag">Polyglot Runtime</span>
+            </div>
+            <div class="card-body">
+              <form id="form-create-pod" onsubmit="handleCreatePod(event)">
+                <div class="form-group">
+                  <label>Nombre de la Función</label>
+                  <input type="text" id="pod-name" class="input-field" placeholder="ej. Image-Resizer-Rust" required>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Runtime</label>
+                    <select id="pod-runtime" class="input-field">
+                      <option value="python3">Python 3.11 (with pip)</option>
+                      <option value="rust">Rust 1.78 (Native Cargo)</option>
+                      <option value="go">Go 1.22</option>
+                      <option value="nodejs20">Node.js 20 LTS</option>
+                      <option value="wasm">WebAssembly (WASM Sandbox)</option>
+                      <option value="bash">Bash / Shell</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Entrypoint</label>
+                    <input type="text" id="pod-entrypoint" class="input-field" value="handler" required>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Código del Handler</label>
+                  <textarea id="pod-code" class="input-field code-textarea" rows="8">def handler(event, context):
+    data = event.get("data", [])
+    processed = [x.upper() if isinstance(x, str) else x * 2 for x in data]
+    return {
+        "status": "success",
+        "processed": processed
+    }</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">📦 Compilar y Guardar Pod</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right: Live Pod Tester -->
+          <div class="card">
+            <div class="card-header">
+              <h3>⚡ Invocación Síncrona en Tiempo Real</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>Seleccionar Pod</label>
+                <select id="select-test-pod" class="input-field">
+                  <!-- Injected via JS -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Payload JSON de Entrada</label>
+                <textarea id="test-pod-payload" class="input-field code-textarea" rows="4">{"data": ["alpha", "beta", "mockhive", 42]}</textarea>
+              </div>
+
+              <button class="btn btn-primary" onclick="testInvokePod()">🚀 Invocar Micro-VM</button>
+
+              <div id="pod-test-result" class="pod-result-box hidden">
+                <h4>Resultado de la Invocación:</h4>
+                <div class="result-metrics">
+                  <span id="res-latency" class="metric-pill">⏱️ 24ms</span>
+                  <span id="res-status" class="metric-pill success">HTTP 200 OK</span>
+                  <span id="res-cold" class="metric-pill">Warm Pool ⚡</span>
+                </div>
+                <pre id="res-json-output" class="code-pre"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: HIVEGRID -->
+      <section id="tab-grid" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <h3>🕸️ HiveGrid — Cluster de Computación Paralela Map-Reduce</h3>
+            <span class="badge-tag">Multi-Runner Actions Matrix</span>
+          </div>
+          <div class="card-body">
+            <p class="section-desc">
+              Divide tareas computacionalmente pesadas entre matrices paralelas de <strong>2 a 20 runners simultáneos de GitHub Actions</strong> a coste $0 con consolidación Map-Reduce automática.
+            </p>
+
+            <form id="form-grid-job" onsubmit="handleDispatchGrid(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Nombre del Job Distribuido</label>
+                  <input type="text" id="grid-name" class="input-field" placeholder="ej. Massive-Dataset-Embedder" required>
+                </div>
+                <div class="form-group">
+                  <label>Workers Paralelos (GitHub Actions Matrix)</label>
+                  <input type="number" id="grid-workers" class="input-field" value="4" min="2" max="20" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Función Map (Worker)</label>
+                  <textarea id="grid-map-code" class="input-field code-textarea" rows="4">def map_chunk(chunk_data):
+    return [item * 2 for item in chunk_data]</textarea>
+                </div>
+                <div class="form-group">
+                  <label>Función Reduce (Aggregator)</label>
+                  <textarea id="grid-reduce-code" class="input-field code-textarea" rows="4">def reduce_results(mapped_outputs):
+    return sum(mapped_outputs)</textarea>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary">🚀 Despachar Cluster Job en Matriz</button>
+            </form>
+
+            <div class="grid-jobs-container">
+              <h4>Historial de Jobs HiveGrid</h4>
+              <div id="grid-jobs-list">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: ONBOARDING & MANUAL -->
+      <section id="tab-onboarding" class="tab-pane">
+        <div class="onboarding-layout">
+          <!-- Fast Access Sticky Navigator -->
+          <div class="fast-nav-card">
+            <h4>⚡ Acceso Rápido</h4>
+            <nav class="fast-nav-menu">
+              <a href="#guide-overview" class="fast-nav-item">🌟 Visión General $0</a>
+              <a href="#guide-hivenodes" class="fast-nav-item">🏰 HiveNodes (EC2 & SSH)</a>
+              <a href="#guide-247" class="fast-nav-item">⚠️ Modo 24/7 & ToS Safety</a>
+              <a href="#guide-waggles" class="fast-nav-item">🐝 Waggles (Step Functions)</a>
+              <a href="#guide-pods" class="fast-nav-item">🌸 PollenPods (Micro-VMs)</a>
+              <a href="#guide-grid" class="fast-nav-item">🕸️ HiveGrid (Map-Reduce)</a>
+              <a href="#guide-practices" class="fast-nav-item">💡 Buenas y Malas Prácticas</a>
+              <a href="#guide-faq" class="fast-nav-item">❓ FAQ & Errores Comunes</a>
+            </nav>
+          </div>
+
+          <!-- Content Column -->
+          <div class="onboarding-content">
+            <article id="guide-overview" class="guide-card">
+              <h2>🌟 ¿Qué es MockHive?</h2>
+              <p>
+                <strong>MockHive</strong> es la plataforma de computación cloud efímera y distribuida de <strong>Terra</strong>. Convierte el tiempo de computación gratuito de GitHub Actions en servidores virtuales interactivos (HiveNodes), máquinas de estado serverless (Waggles), micro-funciones aisladas (PollenPods) y clusters paralelos Map-Reduce (HiveGrid) sin servidores dedicados ni costes de suscripción.
+              </p>
+            </article>
+
+            <article id="guide-hivenodes" class="guide-card">
+              <h2>🏰 HiveNodes: Servidores Virtuales con Conexión SSH</h2>
+              <p>
+                Un HiveNode es una máquina virtual Ubuntu completa ejecutada sobre un runner de GitHub Actions. Para conectarte:
+              </p>
+              <ul>
+                <li><strong>Web Terminal:</strong> Abre una consola interactiva directa en el navegador haciendo clic en <em>Web Terminal</em>.</li>
+                <li><strong>SSH en tu Terminal:</strong> Copia el comando <code>ssh -p 2200 ubuntu@tunnel.tmate.io</code> provisto en la tarjeta del nodo.</li>
+                <li><strong>Tailscale VPN:</strong> Si configuras un Auth Key de Tailscale, el nodo se une a tu red privada con una IP <code>100.x.y.z</code> directa.</li>
+              </ul>
+            </article>
+
+            <article id="guide-247" class="guide-card">
+              <h2>⚠️ Modo 24/7 Lazarus Relay & ToS de GitHub</h2>
+              <div class="alert-box warning">
+                El modo 24/7 utiliza relevos automáticos (relays) antes de las 6 horas de límite del runner de GitHub. Úsalo con moderación y exclusivamente para servidores que realmente requieran continuidad. Para desarrollo y tareas puntuales, utiliza siempre el modo <strong>TTL Efímero</strong>.
+              </div>
+            </article>
+
+            <article id="guide-waggles" class="guide-card">
+              <h2>🐝 Waggles: Step Functions & Control Humano</h2>
+              <p>
+                Define máquinas de estado declarativas compatibles con estados <code>Task</code>, <code>Choice</code>, <code>Parallel</code> y <code>WaitForCallback</code>. Cuando una ejecución llega a una pausa, puedes revisarla y aprobarla con 1 clic en el panel de Waggles.
+              </p>
+            </article>
+
+            <article id="guide-practices" class="guide-card">
+              <h2>💡 Buenas y Malas Prácticas</h2>
+              <div class="practices-grid">
+                <div class="practice-box good">
+                  <h4>✔️ Buenas Prácticas</h4>
+                  <ul>
+                    <li>Monta almacenamiento persistente en <code>/mockhive/data</code> para no perder archivos.</li>
+                    <li>Utiliza Rolla-Balls para datasets grandes de más de 2GB.</li>
+                    <li>Usa PollenPods para tareas que requieran respuestas JSON rápidas en menos de 50ms.</li>
+                  </ul>
+                </div>
+                <div class="practice-box bad">
+                  <h4>❌ Malas Prácticas</h4>
+                  <ul>
+                    <li>No dejes corriendo múltiples servidores 24/7 sin supervisión.</li>
+                    <li>No guardes contraseñas en texto plano dentro de los init scripts; usa Secrets de GitHub.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: WEB TERMINAL -->
+  <div id="modal-terminal" class="modal-backdrop hidden">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3>🖥️ MockHive Web Terminal Emulator</h3>
+        <button class="modal-close" onclick="closeTerminalModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="web-terminal-container">
+          <div class="terminal-screen" id="terminal-screen">
+            <div class="term-line">MockHive Ubuntu 24.04 LTS (x86_64) - Web Shell Session Active</div>
+            <div class="term-line">Type 'help' for available commands. Connected to runner via WebSocket.</div>
+            <div class="term-line"><br></div>
+          </div>
+          <div class="terminal-input-row">
+            <span class="term-prompt">ubuntu@mockhive-node:~$</span>
+            <input type="text" id="term-input" class="term-input-field" autofocus onkeydown="handleTerminalInput(event)">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT NODE -->
+  <div id="modal-edit-node" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>⚙️ Editar Configuración de HiveNode</h3>
+        <button class="modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-node" onsubmit="handleSaveNodeEdit(event)">
+          <input type="hidden" id="edit-node-id">
+          <div class="form-group">
+            <label>Nombre del Servidor</label>
+            <input type="text" id="edit-node-name" class="input-field" required>
+          </div>
+          <div class="form-group">
+            <label>Ciclo de Vida</label>
+            <select id="edit-node-lifecycle" class="input-field">
+              <option value="ttl_ephemeral">TTL Efímero</option>
+              <option value="lazarus_24_7">24/7 Lazarus Relay</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>TTL (Minutos)</label>
+            <input type="number" id="edit-node-ttl" class="input-field" min="15" max="350">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Guardar Cambios</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

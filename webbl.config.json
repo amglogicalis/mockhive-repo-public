@@ -1,0 +1,6 @@
+{
+  "appName": "mockhive",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "spa": true
+}
