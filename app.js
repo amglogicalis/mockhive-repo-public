@@ -83,8 +83,8 @@ function loadDefaultDeployedResources() {
       name: 'Dev-Worker-Ubuntu',
       osImage: 'ubuntu-22.04',
       lifecycleMode: 'ttl_ephemeral',
-      ttlMinutes: 180,
-      inactivityMinutes: 15,
+      ttlMinutes: null,
+      inactivityMinutes: null,
       storage: { type: 'rolla_ball', rollaBallId: 'ball_dev_storage', mountPath: '/mockhive/data' },
       tunnelProvider: 'tmate',
       initScript: '',
@@ -473,7 +473,7 @@ function renderNodesList() {
           <span class="status-tag ${n.status}">${isRunning ? 'EN EJECUCIÓN' : isProvisioning ? 'APROVISIONANDO RUNNER ⚡' : 'DETENIDO'}</span>
         </div>
         <div class="node-details">
-          <div><strong>Ciclo:</strong> ${n.lifecycleMode === 'lazarus_24_7' ? '24/7 Lazarus Relay' : `TTL (${n.ttlMinutes || 120}m)`}</div>
+          <div><strong>Ciclo:</strong> ${n.lifecycleMode === 'lazarus_24_7' ? '24/7 Lazarus Relay' : n.ttlMinutes ? `TTL (${n.ttlMinutes}m)` : 'Inactividad (Sin TTL fijo)'}</div>
           <div><strong>Storage:</strong> ${n.storage.type}</div>
           <div><strong>Tunnel:</strong> ${n.tunnelProvider}</div>
         </div>
@@ -515,8 +515,13 @@ function handleCreateNode(e) {
   const name = document.getElementById('node-name').value;
   const osImage = document.getElementById('node-os').value;
   const lifecycleMode = document.getElementById('node-lifecycle').value;
-  const ttlMinutes = lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('node-ttl').value, 10) || 120);
-  const inactivityMinutes = lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('node-inactivity').value, 10) || 15);
+  
+  const rawTtl = document.getElementById('node-ttl').value;
+  const ttlMinutes = lifecycleMode === 'lazarus_24_7' ? null : (rawTtl === '' || rawTtl === '0' ? 0 : parseInt(rawTtl, 10));
+  
+  const rawInactivity = document.getElementById('node-inactivity').value;
+  const inactivityMinutes = lifecycleMode === 'lazarus_24_7' ? null : (rawInactivity ? parseInt(rawInactivity, 10) : 15);
+
   const storageType = document.getElementById('node-storage-type').value;
   const rollaBallId = document.getElementById('rolla-ball-id')?.value || '';
   const s3Endpoint = document.getElementById('s3-endpoint')?.value || '';
@@ -583,7 +588,7 @@ async function startNode(nodeId) {
         inputs: {
           node_id: node.nodeId,
           lifecycle_mode: node.lifecycleMode,
-          ttl_minutes: String(node.ttlMinutes || 60)
+          ttl_minutes: String(node.ttlMinutes && node.ttlMinutes > 0 ? node.ttlMinutes : 350)
         }
       })
     });
@@ -676,10 +681,10 @@ function onLifecycleChange() {
   const warn = document.getElementById('node-247-warning');
   const ttlRow = document.getElementById('ttl-row');
   if (val === 'lazarus_24_7') {
-    warn.classList.remove('hidden');
+    if (warn) warn.classList.remove('hidden');
     if (ttlRow) ttlRow.classList.add('hidden');
   } else {
-    warn.classList.add('hidden');
+    if (warn) warn.classList.add('hidden');
     if (ttlRow) ttlRow.classList.remove('hidden');
   }
 }
@@ -695,10 +700,10 @@ function onEditLifecycleChange() {
   const warn = document.getElementById('edit-node-247-warning');
   const ttlRow = document.getElementById('edit-ttl-row');
   if (val === 'lazarus_24_7') {
-    warn.classList.remove('hidden');
+    if (warn) warn.classList.remove('hidden');
     if (ttlRow) ttlRow.classList.add('hidden');
   } else {
-    warn.classList.add('hidden');
+    if (warn) warn.classList.add('hidden');
     if (ttlRow) ttlRow.classList.remove('hidden');
   }
 }
@@ -919,8 +924,10 @@ function openEditModal(nodeId) {
   document.getElementById('edit-node-name').value = node.name;
   document.getElementById('edit-node-os').value = node.osImage || 'ubuntu-latest';
   document.getElementById('edit-node-lifecycle').value = node.lifecycleMode || 'ttl_ephemeral';
-  document.getElementById('edit-node-ttl').value = node.ttlMinutes || '';
-  document.getElementById('edit-node-inactivity').value = node.inactivityMinutes || '';
+  
+  // Clean TTL & Inactivity (no hardcoded fallback numbers)
+  document.getElementById('edit-node-ttl').value = (node.ttlMinutes !== undefined && node.ttlMinutes !== null) ? node.ttlMinutes : '';
+  document.getElementById('edit-node-inactivity').value = (node.inactivityMinutes !== undefined && node.inactivityMinutes !== null) ? node.inactivityMinutes : '';
   
   const storageType = node.storage?.type || 'vault_persistent';
   document.getElementById('edit-node-storage-type').value = storageType;
@@ -949,8 +956,12 @@ function handleSaveNodeEdit(e) {
     node.name = document.getElementById('edit-node-name').value;
     node.osImage = document.getElementById('edit-node-os').value;
     node.lifecycleMode = document.getElementById('edit-node-lifecycle').value;
-    node.ttlMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('edit-node-ttl').value, 10) || 120);
-    node.inactivityMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('edit-node-inactivity').value, 10) || 15);
+    
+    const rawTtl = document.getElementById('edit-node-ttl').value;
+    node.ttlMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : (rawTtl === '' || rawTtl === '0' ? 0 : parseInt(rawTtl, 10));
+    
+    const rawInactivity = document.getElementById('edit-node-inactivity').value;
+    node.inactivityMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : (rawInactivity ? parseInt(rawInactivity, 10) : 15);
     
     const storageType = document.getElementById('edit-node-storage-type').value;
     node.storage = {
