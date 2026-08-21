@@ -495,6 +495,16 @@ body {
   color: #ffffff;
 }
 
+.ssh-pending-box {
+  background: #080808;
+  border: 1px dashed #333333;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
 .node-actions {
   display: flex;
   gap: 8px;
@@ -513,10 +523,23 @@ body {
   border: 1px solid #555555;
 }
 
+.status-tag.provisioning {
+  background: #262626;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
 .status-tag.stopped {
   background: #111111;
   color: var(--text-muted);
   border: 1px solid #282828;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 
 /* TERMINAL SCREEN */
@@ -576,6 +599,46 @@ body {
 .log-line.info { color: #ffffff; }
 .log-line.success { color: #cccccc; }
 .log-line.warn { color: #888888; }
+
+/* TOAST NOTIFICATIONS */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.toast {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideUp 0.25s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
 
 /* POD TESTER */
 .pod-result-box {

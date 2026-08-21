@@ -68,7 +68,7 @@
         </div>
 
         <div class="header-auth" id="header-auth">
-          <!-- Rendered dynamically: Login button or User Profile + Logout -->
+          <!-- Rendered dynamically -->
         </div>
       </header>
 
@@ -76,7 +76,7 @@
       <div id="unauth-banner" class="auth-banner hidden">
         <div class="banner-content">
           <h3>🔒 Inicia sesión con tu GitHub Personal Access Token (PAT)</h3>
-          <p>Conéctate para sincronizar tus recursos desplegados en <code>.mockhive-storage</code> y controlar tus runners de GitHub Actions.</p>
+          <p>Conéctate para sincronizar tus recursos y lanzar runners reales en GitHub Actions.</p>
         </div>
         <button class="btn btn-primary" onclick="openLoginModal()">🔑 Iniciar Sesión con GitHub PAT</button>
       </div>
@@ -186,7 +186,7 @@
 
                 <!-- 24/7 Warning Alert Box -->
                 <div id="node-247-warning" class="alert-box warning hidden">
-                  ⚠️ <strong>Aviso de ToS de GitHub:</strong> El modo 24/7 mantiene el runner activo mediante auto-disparos recursivos antes del timeout de 6h. El uso abusivo o descuidado puede infringir los Términos de GitHub y causar la suspensión de la cuenta. Usa con responsabilidad.
+                  ⚠️ <strong>Aviso de ToS de GitHub:</strong> El modo 24/7 mantiene el runner activo mediante auto-disparos recursivos antes del timeout de 6h. Usa con responsabilidad.
                 </div>
 
                 <div class="form-row" id="ttl-row">
@@ -213,12 +213,8 @@
                 <!-- Rolla-Ball Sub-Config -->
                 <div id="storage-rolla-config" class="sub-form-box hidden">
                   <div class="form-group">
-                    <label>ID de la Rolla-Ball (o nueva a crear)</label>
+                    <label>ID de la Rolla-Ball</label>
                     <input type="text" id="rolla-ball-id" class="input-field" placeholder="ej. ball_my_dev_storage">
-                  </div>
-                  <div class="form-group">
-                    <label>PAT de GitHub (Opcional si usa cuenta diferente)</label>
-                    <input type="password" id="rolla-pat" class="input-field" placeholder="ghp_...">
                   </div>
                 </div>
 
@@ -234,42 +230,18 @@
                       <input type="text" id="s3-bucket" class="input-field" placeholder="my-mockhive-bucket">
                     </div>
                   </div>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label>Access Key</label>
-                      <input type="text" id="s3-access-key" class="input-field" placeholder="AKIA...">
-                    </div>
-                    <div class="form-group">
-                      <label>Secret Key</label>
-                      <input type="password" id="s3-secret-key" class="input-field" placeholder="Secret...">
-                    </div>
-                  </div>
                 </div>
 
                 <div class="form-group">
                   <label>Protocolo de Conexión & Túnel SSH</label>
-                  <select id="node-tunnel" class="input-field" onchange="onTunnelChange()">
+                  <select id="node-tunnel" class="input-field">
                     <option value="tmate">Tmate SSH (Automático, Cero Configuración)</option>
                     <option value="bore">Bore Reverse Proxy (Puerto TCP Directo)</option>
                     <option value="web_terminal">Web Terminal WebSocket (xterm.js en navegador)</option>
-                    <option value="cloudflare_tunnel">Cloudflare Zero Trust Tunnel</option>
-                    <option value="tailscale">Tailscale Ephemeral Node (Mesh VPN)</option>
                   </select>
                 </div>
 
-                <div id="tunnel-tailscale-config" class="sub-form-box hidden">
-                  <div class="form-group">
-                    <label>Tailscale Ephemeral Auth Key</label>
-                    <input type="password" id="tailscale-key" class="input-field" placeholder="tskey-auth-...">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label>Script de Inicialización (Init Script)</label>
-                  <textarea id="node-init-script" class="input-field code-textarea" rows="3" placeholder="# Comandos para ejecutar al arrancar&#10;sudo apt update && sudo apt install -y git curl&#10;echo 'Node listo'"></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block">🚀 Desplegar HiveNode</button>
+                <button type="submit" class="btn btn-primary btn-block">🚀 Aprovisionar Servidor</button>
               </form>
             </div>
           </div>
@@ -521,9 +493,9 @@
                 Un HiveNode es una máquina virtual Ubuntu completa ejecutada sobre un runner de GitHub Actions. Para conectarte:
               </p>
               <ul>
-                <li><strong>Web Terminal Embebida:</strong> Haz clic en <em>Web Shell</em> en la tarjeta de cualquier HiveNode activo.</li>
-                <li><strong>SSH en tu Terminal:</strong> Copia el comando <code>ssh -p 2200 ubuntu@tunnel.tmate.io</code> provisto en la tarjeta del nodo.</li>
-                <li><strong>Tailscale VPN:</strong> Si configuras un Auth Key de Tailscale, el nodo se une a tu red privada con una IP <code>100.x.y.z</code> directa.</li>
+                <li><strong>Iniciar Servidor:</strong> Haz clic en <em>⚡ Iniciar Servidor</em> en la tarjeta del nodo. Esto dispara un runner real en GitHub Actions con servidor Tmate.</li>
+                <li><strong>Copiar SSH:</strong> Al iniciar, el runner emite una URL SSH dinámica real (ej. <code>ssh xxx@lon1.tmate.io</code>) que puedes copiar directamente a tu terminal.</li>
+                <li><strong>Web Shell:</strong> Abre una sesión interactiva en navegador haciendo clic en <em>🖥️ Web Shell</em>.</li>
               </ul>
             </article>
 
@@ -567,6 +539,26 @@
     </main>
   </div>
 
+  <!-- IN-APP TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- MODAL: CUSTOM CONFIRM -->
+  <div id="modal-confirm" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="confirm-modal-title">Confirmación</h3>
+        <button class="modal-close" onclick="closeConfirmModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-modal-desc" class="modal-desc"></p>
+        <div class="modal-actions-row">
+          <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
+          <button class="btn btn-primary" id="confirm-modal-btn">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: WEB SHELL (FOR HIVENODE) -->
   <div id="modal-node-shell" class="modal-backdrop hidden">
     <div class="modal-dialog modal-lg">
@@ -597,7 +589,7 @@
       </div>
       <div class="modal-body">
         <p class="modal-desc">
-          Introduce tu Personal Access Token (PAT) con permisos de <code>repo</code> y <code>workflow</code> para sincronizar tus recursos en <code>.mockhive-storage</code>.
+          Introduce tu Personal Access Token (PAT) con permisos de <code>repo</code> y <code>workflow</code> para sincronizar tus recursos y lanzar runners de GitHub Actions.
         </p>
         <form onsubmit="handleLoginPAT(event)">
           <div class="form-group">

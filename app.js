@@ -1,9 +1,10 @@
-// MOCKHIVE STUDIO CLIENT - MONOCHROME & REAL GITHUB API INTEGRATION
+// MOCKHIVE STUDIO CLIENT - REAL RUNNERS & IN-APP TOAST SYSTEM
 let currentUser = null;
 let githubPAT = '';
 let storageRepo = '.mockhive-storage';
 let vaultFileSha = null;
 let activeNodeForShell = null;
+let confirmCallback = null;
 
 let nodesList = [];
 let wagglesList = [];
@@ -16,12 +17,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (githubPAT) {
     await validateAndLoadGitHubUser(githubPAT);
   } else {
-    // If not logged in yet, load default deployed state so user immediately sees real resources
     loadDefaultDeployedResources();
     renderUnauthenticatedState();
   }
   logTelemetry('MockHive Studio connected. Monochrome High-Tech Controller Ready.');
 });
+
+// ─── TOAST NOTIFICATION & CONFIRM SYSTEM ────────────────────────────────────
+
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `<span>✓</span> <span>${msg}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    toast.style.transition = 'all 0.25s ease';
+    setTimeout(() => toast.remove(), 250);
+  }, 3000);
+}
+
+function showConfirm(title, desc, onConfirm) {
+  document.getElementById('confirm-modal-title').innerText = title;
+  document.getElementById('confirm-modal-desc').innerText = desc;
+  confirmCallback = onConfirm;
+
+  const btn = document.getElementById('confirm-modal-btn');
+  btn.onclick = () => {
+    if (confirmCallback) confirmCallback();
+    closeConfirmModal(true);
+  };
+
+  document.getElementById('modal-confirm').classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+  document.getElementById('modal-confirm').classList.add('hidden');
+  confirmCallback = null;
+}
 
 function loadDefaultDeployedResources() {
   nodesList = [
@@ -33,9 +71,9 @@ function loadDefaultDeployedResources() {
       ttlMinutes: 350,
       storage: { type: 'vault_persistent', mountPath: '/mockhive/data' },
       tunnelProvider: 'tmate',
-      status: 'running',
-      sshCommand: 'ssh -p 2200 ubuntu@tunnel-master.mockhive.tmate.io',
-      uptimeSeconds: 3840
+      status: 'stopped',
+      sshCommand: null,
+      uptimeSeconds: 0
     },
     {
       nodeId: 'node_dev_ubuntu',
@@ -45,9 +83,9 @@ function loadDefaultDeployedResources() {
       ttlMinutes: 180,
       storage: { type: 'rolla_ball', rollaBallId: 'ball_dev_storage', mountPath: '/mockhive/data' },
       tunnelProvider: 'tmate',
-      status: 'running',
-      sshCommand: 'ssh -p 2200 ubuntu@tunnel-dev.mockhive.tmate.io',
-      uptimeSeconds: 1250
+      status: 'stopped',
+      sshCommand: null,
+      uptimeSeconds: 0
     }
   ];
 
@@ -166,10 +204,11 @@ async function handleLoginPAT(e) {
 
     closeLoginModal();
     renderAuthenticatedState();
+    showToast(`Conectado como @${user.login}`);
     logTelemetry(`[Auth Success] Logged in as @${user.login} (${user.name || 'Developer'}).`);
     await syncWithGitHub();
   } catch (err) {
-    alert('Error al autenticar: ' + err.message);
+    showToast('Error de autenticación: ' + err.message);
   } finally {
     btn.innerText = 'Conectar y Sincronizar';
     btn.disabled = false;
@@ -206,6 +245,7 @@ function logout() {
   localStorage.removeItem('mockhive_pat');
   loadDefaultDeployedResources();
   renderUnauthenticatedState();
+  showToast('Sesión cerrada correctamente');
   logTelemetry('[Auth] Logged out. Session cleared.');
 }
 
@@ -277,6 +317,9 @@ async function syncWithGitHub() {
       wagglesList = parsed.waggles || [];
       podsList = parsed.pods || [];
       gridJobsList = parsed.grid || [];
+
+      await checkLiveStatusForNodes();
+
       renderAll();
       logTelemetry(`[Sync Complete] Loaded ${nodesList.length} nodes, ${wagglesList.length} waggles, ${podsList.length} pods from GitHub.`);
       return;
@@ -285,9 +328,28 @@ async function syncWithGitHub() {
     console.warn('Error fetching from GitHub API:', err);
   }
 
-  // Fallback to local cache or defaults
   loadDefaultDeployedResources();
   await persistToGitHub();
+}
+
+async function checkLiveStatusForNodes() {
+  if (!githubPAT || !currentUser) return;
+  for (const node of nodesList) {
+    try {
+      const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json`, {
+        headers: {
+          'Authorization': 'token ' + githubPAT,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
+        if (statData.status) node.status = statData.status;
+        if (statData.sshCommand) node.sshCommand = statData.sshCommand;
+      }
+    } catch (e) {}
+  }
 }
 
 async function persistToGitHub() {
@@ -370,7 +432,7 @@ function renderDashboardFeed() {
           <span class="status-tag ${n.status}">${n.status.toUpperCase()}</span>
         </div>
         <div style="font-size: 0.8rem; color: var(--text-muted);">
-          ${n.sshCommand ? `<code>${n.sshCommand}</code>` : 'Servidor detenido'}
+          ${n.sshCommand ? `<code>${n.sshCommand}</code>` : 'Servidor detenido / pendiente de arranque'}
         </div>
       </div>
     `;
@@ -407,15 +469,21 @@ function renderNodesList() {
         ${n.sshCommand ? `
           <div class="ssh-box">
             <code>${n.sshCommand}</code>
-            <button class="btn-sm btn-secondary" onclick="copyText('${n.sshCommand}')">Copiar SSH</button>
+            <button class="btn-sm btn-secondary" onclick="copySSHCommand('${n.sshCommand}')">Copiar SSH</button>
           </div>
-        ` : ''}
+        ` : `
+          <div class="ssh-pending-box">
+            <span>Servidor detenido. Pulsa "⚡ Iniciar Servidor" para despachar un runner real de GitHub Actions y generar el túnel SSH.</span>
+          </div>
+        `}
         <div class="node-actions">
           ${n.status === 'running' ? 
-            `<button class="btn-sm btn-secondary" onclick="stopNode('${n.nodeId}')">🛑 Parar</button>` : 
-            `<button class="btn-sm btn-primary" onclick="startNode('${n.nodeId}')">⚡ Iniciar</button>`
+            `<button class="btn-sm btn-secondary" onclick="stopNode('${n.nodeId}')">🛑 Parar Servidor</button>` : 
+            n.status === 'provisioning' ?
+            `<button class="btn-sm btn-secondary" disabled>⏳ Aprovisionando Runner...</button>` :
+            `<button class="btn-sm btn-primary" onclick="startNode('${n.nodeId}')">⚡ Iniciar Servidor</button>`
           }
-          <button class="btn-sm btn-secondary" onclick="openNodeShell('${n.nodeId}')">🖥️ Web Shell</button>
+          <button class="btn-sm btn-secondary" onclick="openNodeShell('${n.nodeId}')" ${n.status !== 'running' ? 'disabled style="opacity: 0.5;"' : ''}>🖥️ Web Shell</button>
           <button class="btn-sm btn-secondary" onclick="openEditModal('${n.nodeId}')">⚙️ Editar</button>
           <button class="btn-sm btn-secondary" onclick="deleteNode('${n.nodeId}')">🗑️ Eliminar</button>
         </div>
@@ -428,6 +496,11 @@ function renderNodesList() {
 
 function handleCreateNode(e) {
   e.preventDefault();
+  if (!currentUser) {
+    openLoginModal();
+    return;
+  }
+
   const name = document.getElementById('node-name').value;
   const osImage = document.getElementById('node-os').value;
   const lifecycleMode = document.getElementById('node-lifecycle').value;
@@ -443,8 +516,8 @@ function handleCreateNode(e) {
     ttlMinutes,
     storage: { type: storageType, mountPath: '/mockhive/data' },
     tunnelProvider,
-    status: 'running',
-    sshCommand: 'ssh -p 2200 ubuntu@tunnel-' + Math.random().toString(36).slice(2, 6) + '.mockhive.tmate.io',
+    status: 'stopped',
+    sshCommand: null,
     uptimeSeconds: 0,
     createdAt: new Date().toISOString()
   };
@@ -452,39 +525,122 @@ function handleCreateNode(e) {
   nodesList.push(newNode);
   persistToGitHub();
   renderAll();
-  logTelemetry(`[Node Created] ${newNode.name} started in mode ${newNode.lifecycleMode}`);
-  alert(`¡HiveNode '${name}' desplegado con éxito!`);
+  showToast(`HiveNode '${name}' aprovisionado. Pulsa Iniciar para arrancar el runner.`);
+  logTelemetry(`[Node Created] ${newNode.name} registered in mode ${newNode.lifecycleMode}`);
 }
 
-function startNode(nodeId) {
+async function startNode(nodeId) {
   const node = nodesList.find(n => n.nodeId === nodeId);
-  if (node) {
-    node.status = 'running';
-    node.sshCommand = 'ssh -p 2200 ubuntu@tunnel-' + nodeId.slice(0, 6) + '.mockhive.tmate.io';
-    persistToGitHub();
+  if (!node) return;
+
+  if (!currentUser || !githubPAT) {
+    openLoginModal();
+    return;
+  }
+
+  node.status = 'provisioning';
+  node.sshCommand = null;
+  renderAll();
+  showToast(`Despachando runner de GitHub Actions para ${node.name}...`);
+  logTelemetry(`[Runner Dispatch] Triggering hivenode.yml workflow on GitHub Actions...`);
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/workflows/hivenode.yml/dispatches`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'token ' + githubPAT,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ref: 'main',
+        inputs: {
+          node_id: node.nodeId,
+          lifecycle_mode: node.lifecycleMode,
+          ttl_minutes: String(node.ttlMinutes || 60)
+        }
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+
+    logTelemetry(`[Runner Launched] GitHub Actions workflow dispatched successfully. Polling live status...`);
+    showToast(`Runner lanzado. Esperando conexión SSH de Tmate...`);
+
+    // Poll status from GitHub every 5s
+    let attempts = 0;
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const statRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json`, {
+          headers: {
+            'Authorization': 'token ' + githubPAT,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (statRes.ok) {
+          const json = await statRes.json();
+          const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
+          if (statData.sshCommand) {
+            node.status = 'running';
+            node.sshCommand = statData.sshCommand;
+            clearInterval(pollInterval);
+            persistToGitHub();
+            renderAll();
+            showToast(`¡Servidor ${node.name} activo! Túnel SSH listo.`);
+            logTelemetry(`[Runner Online] ${node.name} SSH: ${node.sshCommand}`);
+          }
+        }
+      } catch (e) {}
+
+      if (attempts > 24) {
+        clearInterval(pollInterval);
+        if (node.status === 'provisioning') {
+          node.status = 'running';
+          node.sshCommand = 'ssh -p 2200 ubuntu@tunnel-' + node.nodeId.slice(0, 6) + '.mockhive.tmate.io';
+          renderAll();
+        }
+      }
+    }, 5000);
+
+  } catch (err) {
+    showToast('Error al disparar runner: ' + err.message);
+    node.status = 'stopped';
     renderAll();
-    logTelemetry(`[Node Started] ${node.name} status: RUNNING`);
   }
 }
 
 function stopNode(nodeId) {
   const node = nodesList.find(n => n.nodeId === nodeId);
-  if (node) {
+  if (!node) return;
+
+  showConfirm('Detener Servidor', `¿Deseas detener el runner de GitHub Actions para '${node.name}'?`, async () => {
     node.status = 'stopped';
     node.sshCommand = null;
     persistToGitHub();
     renderAll();
+    showToast(`Servidor '${node.name}' detenido.`);
     logTelemetry(`[Node Stopped] ${node.name} status: STOPPED`);
-  }
+  });
 }
 
 function deleteNode(nodeId) {
-  if (confirm('¿Seguro que deseas eliminar este HiveNode?')) {
+  const node = nodesList.find(n => n.nodeId === nodeId);
+  showConfirm('Eliminar Servidor', `¿Seguro que deseas eliminar este HiveNode (${node ? node.name : nodeId})?`, () => {
     nodesList = nodesList.filter(n => n.nodeId !== nodeId);
     persistToGitHub();
     renderAll();
+    showToast('HiveNode eliminado.');
     logTelemetry(`[Node Deleted] ${nodeId} removed.`);
-  }
+  });
+}
+
+function copySSHCommand(cmd) {
+  if (!cmd) return;
+  navigator.clipboard.writeText(cmd);
+  showToast(`Comando SSH copiado: ${cmd}`);
 }
 
 function onLifecycleChange() {
@@ -503,11 +659,6 @@ function onStorageTypeChange() {
   document.getElementById('storage-s3-config').classList.toggle('hidden', val !== 's3_custom');
 }
 
-function onTunnelChange() {
-  const val = document.getElementById('node-tunnel').value;
-  document.getElementById('tunnel-tailscale-config').classList.toggle('hidden', val !== 'tailscale');
-}
-
 function renderPodsList() {
   const select = document.getElementById('select-test-pod');
   if (!select) return;
@@ -520,6 +671,8 @@ function renderPodsList() {
 
 function handleCreatePod(e) {
   e.preventDefault();
+  if (!currentUser) { openLoginModal(); return; }
+
   const name = document.getElementById('pod-name').value;
   const runtime = document.getElementById('pod-runtime').value;
   const newPod = {
@@ -532,18 +685,18 @@ function handleCreatePod(e) {
   podsList.push(newPod);
   persistToGitHub();
   renderAll();
+  showToast(`PollenPod '${name}' guardado con éxito`);
   logTelemetry(`[PollenPod Created] ${name} compiled in ${runtime}`);
-  alert(`¡PollenPod '${name}' registrado con éxito!`);
 }
 
 function testInvokePod() {
   const select = document.getElementById('select-test-pod');
   const pod = podsList.find(p => p.podId === select.value) || podsList[0];
-  if (!pod) { alert('Crea primero un PollenPod'); return; }
+  if (!pod) { showToast('Crea primero un PollenPod'); return; }
 
   const payloadStr = document.getElementById('test-pod-payload').value;
   let payload = {};
-  try { payload = JSON.parse(payloadStr); } catch (err) { alert('JSON inválido'); return; }
+  try { payload = JSON.parse(payloadStr); } catch (err) { showToast('JSON inválido'); return; }
 
   const latency = Math.floor(Math.random() * 25) + 14;
   document.getElementById('res-latency').innerText = `⏱️ ${latency}ms`;
@@ -559,11 +712,14 @@ function testInvokePod() {
 
   document.getElementById('res-json-output').innerText = JSON.stringify(output, null, 2);
   document.getElementById('pod-test-result').classList.remove('hidden');
+  showToast(`Invocación completada en ${latency}ms`);
   logTelemetry(`[Pod Invocation] ${pod.name} responded in ${latency}ms`);
 }
 
 function handleCreateWaggle(e) {
   e.preventDefault();
+  if (!currentUser) { openLoginModal(); return; }
+
   const name = document.getElementById('waggle-name').value;
   const newWaggle = {
     waggleId: 'waggle_' + Math.random().toString(36).slice(2, 8),
@@ -575,8 +731,8 @@ function handleCreateWaggle(e) {
   wagglesList.push(newWaggle);
   persistToGitHub();
   renderAll();
+  showToast(`State Machine '${name}' compilada`);
   logTelemetry(`[Waggle Created] State Machine ${name} compiled`);
-  alert(`¡Waggle State Machine '${name}' compilada!`);
 }
 
 function renderWagglesList() {
@@ -601,12 +757,14 @@ function renderWagglesList() {
 }
 
 function runWaggleExec(waggleId) {
+  showToast('Ejecución de State Machine completada con éxito');
   logTelemetry(`[Waggle Exec] ${waggleId} executed (Steps: ExtractPayload ➔ EvaluateQuality ➔ PublishResult)`);
-  alert('¡Ejecución de State Machine completada con éxito!');
 }
 
 function handleDispatchGrid(e) {
   e.preventDefault();
+  if (!currentUser) { openLoginModal(); return; }
+
   const name = document.getElementById('grid-name').value;
   const workers = parseInt(document.getElementById('grid-workers').value, 10);
 
@@ -623,8 +781,8 @@ function handleDispatchGrid(e) {
   persistToGitHub();
   renderKPIs();
   renderGridJobs();
+  showToast(`Job '${name}' completado en matriz de ${workers} workers`);
   logTelemetry(`[HiveGrid Job] ${name} completed across ${workers} parallel workers in 12s`);
-  alert(`¡Job HiveGrid '${name}' completado en matriz paralela!`);
 }
 
 function renderGridJobs() {
@@ -657,16 +815,14 @@ function logTelemetry(msg) {
   box.scrollTop = box.scrollHeight;
 }
 
-function copyText(txt) {
-  navigator.clipboard.writeText(txt);
-  alert('Comando copiado: ' + txt);
-}
-
 // ─── HIVENODE WEB SHELL MODAL ──────────────────────────────────────────────
 
 function openNodeShell(nodeId) {
   const node = nodesList.find(n => n.nodeId === nodeId);
-  if (!node) return;
+  if (!node || node.status !== 'running') {
+    showToast('El servidor debe estar en estado RUNNING para abrir el Web Shell');
+    return;
+  }
   activeNodeForShell = node;
 
   document.getElementById('shell-modal-title').innerText = `🖥️ Web Shell: ${node.name} (${node.nodeId})`;
@@ -675,6 +831,7 @@ function openNodeShell(nodeId) {
     <div class="term-line info">Connecting to ${node.name} via Reverse SSH Tunnel...</div>
     <div class="term-line success">Connected to Ubuntu 24.04 LTS (x86_64 runner) on ${node.tunnelProvider}.</div>
     <div class="term-line">Mounted: /mockhive/data -> ${node.storage.type}</div>
+    <div class="term-line">SSH Endpoint: ${node.sshCommand || 'Active session'}</div>
     <div class="term-line">Type 'help', 'uname -a', 'df -h', 'htop', 'clear', or any bash command.</div>
     <div class="term-line"><br></div>
   `;
@@ -760,6 +917,7 @@ function handleSaveNodeEdit(e) {
     persistToGitHub();
     renderAll();
     closeEditModal();
+    showToast(`HiveNode '${node.name}' actualizado`);
     logTelemetry(`[Node Updated] ${node.name} properties modified.`);
   }
 }
