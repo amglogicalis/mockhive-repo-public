@@ -1,4 +1,4 @@
-// MOCKHIVE STUDIO CLIENT - REAL RUNNERS & IN-APP TOAST SYSTEM
+// MOCKHIVE STUDIO CLIENT - REAL RUNNERS & CONTROLLER
 let currentUser = null;
 let githubPAT = '';
 let storageRepo = '.mockhive-storage';
@@ -21,6 +21,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderUnauthenticatedState();
   }
   logTelemetry('MockHive Studio connected. Monochrome High-Tech Controller Ready.');
+});
+
+// ─── GLOBAL MODAL / BACKDROP EVENT HANDLERS ────────────────────────────────
+
+function handleBackdropClick(e, modalId) {
+  if (e.target.id === modalId) {
+    closeAnyModal(modalId);
+  }
+}
+
+function closeAnyModal(modalId) {
+  const el = document.getElementById(modalId);
+  if (el) {
+    el.classList.add('hidden');
+    el.style.display = 'none';
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop').forEach(m => {
+      m.classList.add('hidden');
+      m.style.display = 'none';
+    });
+  }
 });
 
 // ─── TOAST NOTIFICATION & CONFIRM SYSTEM ────────────────────────────────────
@@ -53,11 +78,17 @@ function showConfirm(title, desc, onConfirm) {
     closeConfirmModal();
   };
 
-  document.getElementById('modal-confirm').classList.remove('hidden');
+  const modal = document.getElementById('modal-confirm');
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 
 function closeConfirmModal() {
-  document.getElementById('modal-confirm').classList.add('hidden');
+  const modal = document.getElementById('modal-confirm');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
   confirmCallback = null;
 }
 
@@ -180,12 +211,18 @@ function switchTab(tabId) {
 // ─── AUTHENTICATION FLOW ───────────────────────────────────────────────────
 
 function openLoginModal() {
-  document.getElementById('modal-login').classList.remove('hidden');
+  const modal = document.getElementById('modal-login');
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
   document.getElementById('input-pat').focus();
 }
 
 function closeLoginModal() {
-  document.getElementById('modal-login').classList.add('hidden');
+  const modal = document.getElementById('modal-login');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
 }
 
 async function handleLoginPAT(e) {
@@ -440,7 +477,7 @@ function renderDashboardFeed() {
           <span class="status-tag ${n.status}">${isRunning ? 'EN EJECUCIÓN' : n.status === 'provisioning' ? 'APROVISIONANDO' : 'DETENIDO'}</span>
         </div>
         <div style="font-size: 0.8rem; color: var(--text-muted);">
-          ${n.sshCommand ? `<code>${n.sshCommand}</code>` : 'Servidor detenido / pendiente de arranque'}
+          ${(isRunning && n.sshCommand) ? `<code>${n.sshCommand}</code>` : 'Servidor detenido / pendiente de arranque'}
         </div>
       </div>
     `;
@@ -870,7 +907,7 @@ function logTelemetry(msg) {
   box.scrollTop = box.scrollHeight;
 }
 
-// ─── HIVENODE WEB SHELL MODAL ──────────────────────────────────────────────
+// ─── HIVENODE WEB SHELL & MODAL FUNCTIONS ──────────────────────────────────
 
 function openNodeShell(nodeId) {
   const node = nodesList.find(n => n.nodeId === nodeId);
@@ -884,25 +921,60 @@ function openNodeShell(nodeId) {
   document.getElementById('shell-node-name').innerText = node.name;
   
   const statusTag = document.getElementById('shell-live-status');
-  if (statusTag) {
-    statusTag.innerText = isRunning ? '🟢 En Ejecución (Ubuntu 24.04)' : isProvisioning ? '⚡ Aprovisionando...' : '⚪ Detenido';
-  }
-
+  const statusIcon = document.getElementById('shell-status-icon');
   const desc = document.getElementById('shell-node-desc');
-  if (desc) {
-    desc.innerText = isRunning ? 
-      'Runner activo en GitHub Actions con servidor Tmate inverso y almacenamiento persistente en /mockhive/data.' :
-      isProvisioning ?
-      'Aprovisionando runner en GitHub Actions. El endpoint SSH estará disponible en unos segundos.' :
-      'Servidor actualmente detenido. Pulsa "⚡ Iniciar Servidor" para arrancar el runner y abrir la conexión.';
+  const stoppedBox = document.getElementById('shell-stopped-box');
+  const activeActions = document.getElementById('shell-active-actions');
+  const relaunchBtn = document.getElementById('btn-relaunch-runner');
+
+  document.getElementById('telemetry-os').innerText = node.osImage || 'Ubuntu 24.04 LTS';
+  document.getElementById('telemetry-tunnel').innerText = (node.tunnelProvider || 'Tmate') + ' Reverse Proxy';
+  document.getElementById('telemetry-storage').innerText = (node.storage?.type || 'vault_persistent') + ' mounted at /mockhive/data';
+
+  if (isRunning) {
+    if (statusTag) statusTag.innerText = '🟢 En Ejecución (Ubuntu 24.04)';
+    if (statusIcon) statusIcon.innerText = '⚡';
+    if (desc) desc.innerText = 'Runner activo en GitHub Actions con servidor Tmate y almacenamiento persistente en /mockhive/data.';
+    if (stoppedBox) stoppedBox.classList.add('hidden');
+    if (activeActions) activeActions.classList.remove('hidden');
+    if (relaunchBtn) relaunchBtn.style.display = 'inline-block';
+    document.getElementById('modal-ssh-cmd').innerText = node.sshCommand || 'ssh ...';
+  } else if (isProvisioning) {
+    if (statusTag) statusTag.innerText = '⚡ Aprovisionando Runner...';
+    if (statusIcon) statusIcon.innerText = '⏳';
+    if (desc) desc.innerText = 'Lanzando runner en GitHub Actions y abriendo túnel SSH. Espera unos segundos...';
+    if (stoppedBox) stoppedBox.classList.add('hidden');
+    if (activeActions) activeActions.classList.add('hidden');
+    if (relaunchBtn) relaunchBtn.style.display = 'none';
+  } else {
+    if (statusTag) statusTag.innerText = '⚪ Detenido';
+    if (statusIcon) statusIcon.innerText = '⚪';
+    if (desc) desc.innerText = 'Servidor actualmente detenido. No hay procesos ni túneles abiertos.';
+    if (stoppedBox) stoppedBox.classList.remove('hidden');
+    if (activeActions) activeActions.classList.add('hidden');
+    if (relaunchBtn) relaunchBtn.style.display = 'none';
   }
 
-  const modalSsh = document.getElementById('modal-ssh-cmd');
-  if (modalSsh) {
-    modalSsh.innerText = node.sshCommand || (isRunning ? 'Conectando...' : 'Servidor detenido');
-  }
+  const modal = document.getElementById('modal-node-shell');
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+}
 
-  document.getElementById('modal-node-shell').classList.remove('hidden');
+function closeNodeShellModal() {
+  const modal = document.getElementById('modal-node-shell');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+  activeNodeForShell = null;
+}
+
+function startFromModal() {
+  if (activeNodeForShell) {
+    const id = activeNodeForShell.nodeId;
+    startNode(id);
+    openNodeShell(id);
+  }
 }
 
 function openShellInNewTab() {
@@ -919,6 +991,14 @@ function openShellInNewTab() {
 function copyModalSSH() {
   if (activeNodeForShell && activeNodeForShell.sshCommand) {
     copySSHCommand(activeNodeForShell.sshCommand);
+  }
+}
+
+function relaunchActiveRunner() {
+  if (activeNodeForShell) {
+    const id = activeNodeForShell.nodeId;
+    startNode(id);
+    openNodeShell(id);
   }
 }
 
@@ -949,11 +1029,17 @@ function openEditModal(nodeId) {
   onEditLifecycleChange();
   onEditStorageTypeChange();
 
-  document.getElementById('modal-edit-node').classList.remove('hidden');
+  const modal = document.getElementById('modal-edit-node');
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
 }
 
 function closeEditModal() {
-  document.getElementById('modal-edit-node').classList.add('hidden');
+  const modal = document.getElementById('modal-edit-node');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
 }
 
 function handleSaveNodeEdit(e) {
@@ -990,3 +1076,40 @@ function handleSaveNodeEdit(e) {
     logTelemetry(`[Node Updated] ${node.name} full properties modified.`);
   }
 }
+
+// Auto Heartbeat Poller for Live Status
+setInterval(async () => {
+  if (githubPAT && currentUser && nodesList.some(n => n.status === 'running' || n.status === 'provisioning')) {
+    await checkLiveStatusForNodes();
+    renderKPIs();
+    renderNodesList();
+    renderDashboardFeed();
+  }
+}, 10000);
+
+// Global Window Exports
+window.openNodeShell = openNodeShell;
+window.closeNodeShellModal = closeNodeShellModal;
+window.openLoginModal = openLoginModal;
+window.closeLoginModal = closeLoginModal;
+window.openEditModal = openEditModal;
+window.closeEditModal = closeEditModal;
+window.closeConfirmModal = closeConfirmModal;
+window.switchTab = switchTab;
+window.startNode = startNode;
+window.stopNode = stopNode;
+window.deleteNode = deleteNode;
+window.copySSHCommand = copySSHCommand;
+window.copyModalSSH = copyModalSSH;
+window.openShellInNewTab = openShellInNewTab;
+window.startFromModal = startFromModal;
+window.relaunchActiveRunner = relaunchActiveRunner;
+window.onLifecycleChange = onLifecycleChange;
+window.onStorageTypeChange = onStorageTypeChange;
+window.onEditLifecycleChange = onEditLifecycleChange;
+window.onEditStorageTypeChange = onEditStorageTypeChange;
+window.testInvokePod = testInvokePod;
+window.runWaggleExec = runWaggleExec;
+window.syncWithGitHub = syncWithGitHub;
+window.logout = logout;
+window.handleBackdropClick = handleBackdropClick;
