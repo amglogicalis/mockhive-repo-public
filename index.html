@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MOCKHIVE Studio — $0 Cost Compute Cloud, Virtual Servers & Step Functions</title>
+  <title>MOCKHIVE — $0 Compute Cloud & Virtual Servers</title>
   <link rel="icon" type="image/png" href="assets/logo_mockhive.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -43,6 +43,10 @@
           <span class="nav-icon">🕸️</span>
           <span class="nav-label">HiveGrid (Map-Reduce)</span>
         </button>
+        <button class="nav-item" onclick="switchTab('terminal')">
+          <span class="nav-icon">🖥️</span>
+          <span class="nav-label">Web Terminal</span>
+        </button>
         <button class="nav-item" onclick="switchTab('onboarding')">
           <span class="nav-icon">📖</span>
           <span class="nav-label">Onboarding & Manual</span>
@@ -50,9 +54,9 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="vault-status">
-          <span class="pulse-dot"></span>
-          <span>Vault: <code>.mockhive-storage</code></span>
+        <div class="vault-status" id="vault-status-box">
+          <span class="status-dot disconnected" id="vault-dot"></span>
+          <span id="vault-status-text">Sin autenticar</span>
         </div>
         <div class="version-badge">v1.0.0 • Terra Ecosystem</div>
       </div>
@@ -67,15 +71,19 @@
           <p id="page-subtitle">Monitoreo en tiempo real de infraestructura efímera, servidores activos y tareas distribuidas</p>
         </div>
 
-        <div class="header-actions">
-          <div class="badge-status">
-            <span class="status-indicator online"></span>
-            <span>Zero-Cost Cloud Active</span>
-          </div>
-          <button class="btn btn-secondary" onclick="openTerminalModal()">🖥️ Web Terminal</button>
-          <button class="btn btn-primary" onclick="switchTab('nodes')">⚡ Nuevo Recurso</button>
+        <div class="header-auth" id="header-auth">
+          <!-- Rendered dynamically by JS: Login button or User Profile + Logout -->
         </div>
       </header>
+
+      <!-- UNLOGGED BANNER -->
+      <div id="unauth-banner" class="auth-banner hidden">
+        <div class="banner-content">
+          <h3>🔒 Inicia sesión con tu GitHub Personal Access Token (PAT)</h3>
+          <p>Conéctate para sincronizar tus servidores HiveNodes, máquinas de estado Waggles y ejecutar acciones reales en tu cuenta de GitHub.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openLoginModal()">🔑 Iniciar Sesión con GitHub PAT</button>
+      </div>
 
       <!-- TAB: DASHBOARD -->
       <section id="tab-dashboard" class="tab-pane active">
@@ -86,7 +94,7 @@
               <span class="kpi-value" id="kpi-nodes">0</span>
               <span class="kpi-label">HiveNodes Activos</span>
             </div>
-            <div class="kpi-badge">Ubuntu Virtual Servers</div>
+            <div class="kpi-badge">Virtual Servers</div>
           </div>
 
           <div class="kpi-card">
@@ -104,7 +112,7 @@
               <span class="kpi-value" id="kpi-pods">0</span>
               <span class="kpi-label">PollenPods Registrados</span>
             </div>
-            <div class="kpi-badge">Polyglot Micro-VMs</div>
+            <div class="kpi-badge">Micro-VMs</div>
           </div>
 
           <div class="kpi-card">
@@ -113,7 +121,7 @@
               <span class="kpi-value" id="kpi-grid">0</span>
               <span class="kpi-label">HiveGrid Jobs</span>
             </div>
-            <div class="kpi-badge">Distributed Swarm</div>
+            <div class="kpi-badge">Map-Reduce Matrix</div>
           </div>
         </div>
 
@@ -122,7 +130,7 @@
           <div class="card">
             <div class="card-header">
               <h3>⚡ Recursos en Ejecución</h3>
-              <button class="btn-sm btn-secondary" onclick="renderAll()">Actualizar</button>
+              <button class="btn-sm btn-secondary" onclick="syncWithGitHub()">Sincronizar</button>
             </div>
             <div class="card-body">
               <div id="active-resources-list" class="resource-feed">
@@ -139,8 +147,7 @@
             </div>
             <div class="card-body">
               <div id="telemetry-log" class="terminal-log-box">
-                <div class="log-line info">[SYS] MockHive Engine initialized on localhost:7440</div>
-                <div class="log-line info">[SYS] Zero-Cost Compute Cloud ready. GitHub Actions runners available.</div>
+                <div class="log-line info">[SYS] MockHive Engine initialized. Monochrome high-contrast theme active.</div>
               </div>
             </div>
           </div>
@@ -485,6 +492,32 @@
         </div>
       </section>
 
+      <!-- TAB: WEB TERMINAL (REAL) -->
+      <section id="tab-terminal" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <h3>🖥️ Live Web Shell & GitHub Actions Controller</h3>
+            <span class="badge-tag" id="term-status-badge">Conectado a GitHub REST API</span>
+          </div>
+          <div class="card-body">
+            <p class="section-desc">
+              Consola terminal interactiva conectada a la API de GitHub y al control plane de tus runners de GitHub Actions. Ejecuta comandos de telemetría, inspección de repositorios, disparos y logs reales.
+            </p>
+            <div class="web-terminal-container">
+              <div class="terminal-screen" id="terminal-screen">
+                <div class="term-line info">MOCKHIVE Interactive Shell v1.0.0 [Monochrome Edition]</div>
+                <div class="term-line">Type 'help' to see all available commands. Connected to GitHub API.</div>
+                <div class="term-line"><br></div>
+              </div>
+              <div class="terminal-input-row">
+                <span class="term-prompt" id="terminal-user-prompt">guest@mockhive:~$</span>
+                <input type="text" id="term-input" class="term-input-field" autofocus onkeydown="handleTerminalInput(event)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- TAB: ONBOARDING & MANUAL -->
       <section id="tab-onboarding" class="tab-pane">
         <div class="onboarding-layout">
@@ -518,7 +551,7 @@
                 Un HiveNode es una máquina virtual Ubuntu completa ejecutada sobre un runner de GitHub Actions. Para conectarte:
               </p>
               <ul>
-                <li><strong>Web Terminal:</strong> Abre una consola interactiva directa en el navegador haciendo clic en <em>Web Terminal</em>.</li>
+                <li><strong>Web Terminal:</strong> Abre la pestaña <em>Web Terminal</em> para ejecutar comandos y monitorear el estado de los runners.</li>
                 <li><strong>SSH en tu Terminal:</strong> Copia el comando <code>ssh -p 2200 ubuntu@tunnel.tmate.io</code> provisto en la tarjeta del nodo.</li>
                 <li><strong>Tailscale VPN:</strong> Si configuras un Auth Key de Tailscale, el nodo se une a tu red privada con una IP <code>100.x.y.z</code> directa.</li>
               </ul>
@@ -564,25 +597,24 @@
     </main>
   </div>
 
-  <!-- MODAL: WEB TERMINAL -->
-  <div id="modal-terminal" class="modal-backdrop hidden">
-    <div class="modal-dialog modal-lg">
+  <!-- MODAL: LOGIN PAT -->
+  <div id="modal-login" class="modal-backdrop hidden">
+    <div class="modal-dialog">
       <div class="modal-header">
-        <h3>🖥️ MockHive Web Terminal Emulator</h3>
-        <button class="modal-close" onclick="closeTerminalModal()">✕</button>
+        <h3>🔑 Iniciar Sesión con GitHub PAT</h3>
+        <button class="modal-close" onclick="closeLoginModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div class="web-terminal-container">
-          <div class="terminal-screen" id="terminal-screen">
-            <div class="term-line">MockHive Ubuntu 24.04 LTS (x86_64) - Web Shell Session Active</div>
-            <div class="term-line">Type 'help' for available commands. Connected to runner via WebSocket.</div>
-            <div class="term-line"><br></div>
+        <p class="modal-desc">
+          Introduce tu Personal Access Token (PAT) con permisos de <code>repo</code> y <code>workflow</code> para sincronizar tus recursos y controlar GitHub Actions en tiempo real.
+        </p>
+        <form onsubmit="handleLoginPAT(event)">
+          <div class="form-group">
+            <label>GitHub Personal Access Token</label>
+            <input type="password" id="input-pat" class="input-field" placeholder="ghp_..." required autofocus>
           </div>
-          <div class="terminal-input-row">
-            <span class="term-prompt">ubuntu@mockhive-node:~$</span>
-            <input type="text" id="term-input" class="term-input-field" autofocus onkeydown="handleTerminalInput(event)">
-          </div>
-        </div>
+          <button type="submit" class="btn btn-primary btn-block">Conectar y Validar</button>
+        </form>
       </div>
     </div>
   </div>
