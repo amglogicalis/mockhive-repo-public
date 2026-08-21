@@ -561,20 +561,21 @@
 
   <!-- MODAL: WEB SHELL (FOR HIVENODE) -->
   <div id="modal-node-shell" class="modal-backdrop hidden">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
       <div class="modal-header">
-        <h3 id="shell-modal-title">🖥️ Web Shell Session</h3>
-        <button class="modal-close" onclick="closeNodeShellModal()">✕</button>
+        <div class="shell-header-left">
+          <h3 id="shell-modal-title">🖥️ Web Shell Session</h3>
+          <span class="badge-tag live-badge">En vivo (Ubuntu 24.04 LTS)</span>
+        </div>
+        <div class="shell-header-actions">
+          <button class="btn-sm btn-secondary" id="btn-open-new-tab" onclick="openShellInNewTab()">🌐 Abrir en Pestaña Nueva</button>
+          <button class="btn-sm btn-secondary" id="btn-copy-modal-ssh" onclick="copyModalSSH()">📋 Copiar SSH</button>
+          <button class="modal-close" onclick="closeNodeShellModal()">✕</button>
+        </div>
       </div>
-      <div class="modal-body">
-        <div class="web-terminal-container">
-          <div class="terminal-screen" id="node-terminal-screen">
-            <!-- Injected dynamically -->
-          </div>
-          <div class="terminal-input-row">
-            <span class="term-prompt" id="node-shell-prompt">ubuntu@mockhive-node:~$</span>
-            <input type="text" id="node-term-input" class="term-input-field" autofocus onkeydown="handleNodeTerminalInput(event)">
-          </div>
+      <div class="modal-body shell-modal-body">
+        <div id="shell-iframe-container" class="shell-iframe-wrapper">
+          <iframe id="shell-live-iframe" class="shell-live-iframe" src="" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
         </div>
       </div>
     </div>

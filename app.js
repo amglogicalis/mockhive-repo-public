@@ -833,65 +833,37 @@ function openNodeShell(nodeId) {
   activeNodeForShell = node;
 
   document.getElementById('shell-modal-title').innerText = `🖥️ Web Shell: ${node.name} (${node.nodeId})`;
-  const screen = document.getElementById('node-terminal-screen');
-  screen.innerHTML = `
-    <div class="term-line info">Connecting to ${node.name} via Reverse SSH Tunnel...</div>
-    <div class="term-line success">Connected to Ubuntu 24.04 LTS (x86_64 runner) on ${node.tunnelProvider}.</div>
-    <div class="term-line">Mounted: /mockhive/data -> ${node.storage.type}</div>
-    <div class="term-line">SSH Endpoint: ${node.sshCommand || 'Active session'}</div>
-    <div class="term-line">Type 'help', 'uname -a', 'df -h', 'htop', 'clear', or any bash command.</div>
-    <div class="term-line"><br></div>
-  `;
+  
+  const iframe = document.getElementById('shell-live-iframe');
+  if (node.webCommand) {
+    iframe.src = node.webCommand;
+  } else {
+    // Fallback if only ssh is active
+    iframe.src = 'about:blank';
+  }
 
-  document.getElementById('node-shell-prompt').innerText = `ubuntu@${node.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}:~$ `;
   document.getElementById('modal-node-shell').classList.remove('hidden');
-  document.getElementById('node-term-input').focus();
+  showToast(`Conectando terminal web interactiva para ${node.name}...`);
 }
 
 function closeNodeShellModal() {
   document.getElementById('modal-node-shell').classList.add('hidden');
+  const iframe = document.getElementById('shell-live-iframe');
+  if (iframe) iframe.src = 'about:blank';
   activeNodeForShell = null;
 }
 
-async function handleNodeTerminalInput(e) {
-  if (e.key === 'Enter') {
-    const input = document.getElementById('node-term-input');
-    const cmd = input.value.trim();
-    if (!cmd) return;
+function openShellInNewTab() {
+  if (activeNodeForShell && activeNodeForShell.webCommand) {
+    window.open(activeNodeForShell.webCommand, '_blank');
+  } else if (activeNodeForShell && activeNodeForShell.sshCommand) {
+    copySSHCommand(activeNodeForShell.sshCommand);
+  }
+}
 
-    const screen = document.getElementById('node-terminal-screen');
-    const prompt = document.getElementById('node-shell-prompt').innerText;
-
-    const userLine = document.createElement('div');
-    userLine.className = 'term-line';
-    userLine.innerText = prompt + ' ' + cmd;
-    screen.appendChild(userLine);
-
-    const respLine = document.createElement('div');
-    respLine.className = 'term-line';
-
-    if (cmd === 'help') {
-      respLine.innerHTML = 'Available commands: uname -a, df -h, htop, ls -la /mockhive/data, git status, clear, exit';
-    } else if (cmd === 'clear') {
-      screen.innerHTML = '';
-      input.value = '';
-      return;
-    } else if (cmd === 'uname' || cmd === 'uname -a') {
-      respLine.innerText = 'Linux mockhive-runner 6.5.0-1014-azure #14~22.04.1-Ubuntu SMP x86_64 GNU/Linux';
-    } else if (cmd === 'df' || cmd === 'df -h') {
-      respLine.innerText = 'Filesystem      Size  Used Avail Use% Mounted on\n/dev/root        75G   24G   51G  32% /\n/dev/mockhive   2.0G  120M  1.8G   6% /mockhive/data';
-    } else if (cmd.startsWith('ls')) {
-      respLine.innerText = 'total 16\ndrwxr-xr-x 2 ubuntu ubuntu 4096 Aug 21 11:20 .\ndrwxr-xr-x 4 ubuntu ubuntu 4096 Aug 21 11:15 ..\n-rw-r--r-- 1 ubuntu ubuntu  512 Aug 21 11:20 app.state\n-rw-r--r-- 1 ubuntu ubuntu 1024 Aug 21 11:20 vault.snapshot.zst';
-    } else if (cmd === 'exit') {
-      closeNodeShellModal();
-      return;
-    } else {
-      respLine.innerText = `[${cmd}] Command executed inside ${activeNodeForShell ? activeNodeForShell.name : 'node'} runner environment.`;
-    }
-
-    screen.appendChild(respLine);
-    screen.scrollTop = screen.scrollHeight;
-    input.value = '';
+function copyModalSSH() {
+  if (activeNodeForShell && activeNodeForShell.sshCommand) {
+    copySSHCommand(activeNodeForShell.sshCommand);
   }
 }
 

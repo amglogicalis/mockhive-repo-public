@@ -802,3 +802,50 @@ body {
 
 .practice-box.good { background: #0d140e; border-color: #2e4d32; }
 .practice-box.bad { background: #1a0f0f; border-color: #522929; }
+
+/* REAL LIVE WEB SHELL MODAL */
+.modal-dialog.modal-xl {
+  width: 95vw;
+  max-width: 1200px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shell-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shell-modal-body {
+  flex: 1;
+  padding: 0;
+  background: #000000;
+  overflow: hidden;
+  position: relative;
+}
+
+.shell-iframe-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.shell-live-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #000000;
+}
+
+.live-badge {
+  background: #1c1c1c;
+  color: #ffffff;
+  border-color: #555555;
+}
