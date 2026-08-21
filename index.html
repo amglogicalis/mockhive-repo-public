@@ -567,25 +567,32 @@
   </div>
 
   <!-- MODAL: WEB SHELL (FOR HIVENODE) -->
-  <div id="modal-node-shell" class="modal-backdrop hidden">
-    <div class="modal-dialog modal-lg">
+  <div id="modal-node-shell" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-node-shell')">
+    <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div class="shell-header-left">
-          <h3 id="shell-modal-title">🖥️ Web Shell & Conexión Live</h3>
-          <span class="badge-tag live-badge" id="shell-live-status">Conectado (Ubuntu 24.04)</span>
+          <h3 id="shell-modal-title">🖥️ Conexión: HiveNode</h3>
+          <span class="badge-tag live-badge" id="shell-live-status">⚪ Detenido</span>
         </div>
-        <button class="modal-close" onclick="closeNodeShellModal()">✕</button>
+        <button class="modal-close" id="btn-shell-close-x" onclick="closeNodeShellModal()">✕</button>
       </div>
       <div class="modal-body shell-hub-body">
         <div class="shell-connection-card">
-          <div class="shell-icon-col">⚡</div>
+          <div class="shell-icon-col" id="shell-status-icon">⚪</div>
           <div class="shell-info-col">
             <h4 id="shell-node-name">Master-Production-Worker</h4>
-            <p id="shell-node-desc">Runner activo en GitHub Actions con servidor Tmate inverso.</p>
+            <p id="shell-node-desc">Servidor actualmente detenido.</p>
           </div>
         </div>
 
-        <div class="shell-options-grid">
+        <!-- Stopped State Callout -->
+        <div id="shell-stopped-box" class="alert-box neutral">
+          <p>Este servidor está apagado. Pulsa el botón inferior para lanzar el runner en GitHub Actions y habilitar la terminal web y conexión SSH.</p>
+          <button class="btn btn-primary btn-block" style="margin-top: 10px;" onclick="startFromModal()">⚡ Iniciar Servidor Ahora</button>
+        </div>
+
+        <!-- Active Actions Grid (Only visible when RUNNING) -->
+        <div id="shell-active-actions" class="shell-options-grid hidden">
           <!-- Web Terminal Direct Option -->
           <div class="shell-action-box">
             <div class="action-box-header">
@@ -617,18 +624,18 @@
         <!-- Telemetry Details Box -->
         <div class="shell-telemetry-box">
           <div class="telemetry-row">
-            <span><strong>Runner OS:</strong> Ubuntu 24.04 LTS (x86_64)</span>
-            <span><strong>Túnel:</strong> Tmate Encrypted Reverse Proxy</span>
+            <span><strong>Runner OS:</strong> <span id="telemetry-os">Ubuntu 24.04 LTS</span></span>
+            <span><strong>Túnel:</strong> <span id="telemetry-tunnel">Tmate Reverse Proxy</span></span>
           </div>
           <div class="telemetry-row">
-            <span><strong>Almacenamiento:</strong> /mockhive/data (Persistente)</span>
+            <span><strong>Almacenamiento:</strong> <span id="telemetry-storage">/mockhive/data (Persistente)</span></span>
             <span><strong>Protocolo:</strong> SSH v2 / WebSocket PTY</span>
           </div>
         </div>
 
         <div class="shell-footer-actions">
-          <button class="btn-sm btn-secondary" onclick="relaunchActiveRunner()">⚡ Re-lanzar Runner Nuevo</button>
-          <button class="btn-sm btn-secondary" onclick="closeNodeShellModal()">Cerrar</button>
+          <button class="btn-sm btn-secondary" id="btn-relaunch-runner" onclick="relaunchActiveRunner()">⚡ Re-lanzar Runner</button>
+          <button class="btn-sm btn-secondary" id="btn-shell-close-footer" onclick="closeNodeShellModal()">Cerrar</button>
         </div>
       </div>
     </div>

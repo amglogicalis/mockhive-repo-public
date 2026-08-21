@@ -351,9 +351,9 @@ async function checkLiveStatusForNodes() {
       if (res.ok) {
         const json = await res.json();
         const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
-        if (statData.status) node.status = statData.status;
-        if (statData.sshCommand) node.sshCommand = statData.sshCommand;
-        if (statData.webCommand) node.webCommand = statData.webCommand;
+        node.status = statData.status || node.status;
+        node.sshCommand = statData.status === 'running' ? statData.sshCommand : null;
+        node.webCommand = statData.status === 'running' ? statData.webCommand : null;
       }
     } catch (e) {}
   }
@@ -477,7 +477,7 @@ function renderNodesList() {
           <div><strong>Storage:</strong> ${n.storage.type}</div>
           <div><strong>Tunnel:</strong> ${n.tunnelProvider}</div>
         </div>
-        ${n.sshCommand ? `
+        ${(isRunning && n.sshCommand) ? `
           <div class="ssh-box">
             <code>${n.sshCommand}</code>
             <button class="btn-sm btn-secondary" onclick="copySSHCommand('${n.sshCommand}')">Copiar SSH</button>
