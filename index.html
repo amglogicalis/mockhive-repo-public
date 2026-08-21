@@ -192,11 +192,11 @@
                 <div class="form-row" id="ttl-row">
                   <div class="form-group">
                     <label>Tiempo de Vida (TTL Minutos)</label>
-                    <input type="number" id="node-ttl" class="input-field" value="120" min="15" max="350">
+                    <input type="number" id="node-ttl" class="input-field" placeholder="ej. 120" min="15" max="350">
                   </div>
                   <div class="form-group">
                     <label>Apagado por Inactividad (Minutos)</label>
-                    <input type="number" id="node-inactivity" class="input-field" value="15" min="5" max="120">
+                    <input type="number" id="node-inactivity" class="input-field" placeholder="ej. 15" min="5" max="120">
                   </div>
                 </div>
 
@@ -239,6 +239,11 @@
                     <option value="bore">Bore Reverse Proxy (Puerto TCP Directo)</option>
                     <option value="web_terminal">Web Terminal WebSocket (xterm.js en navegador)</option>
                   </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Script de Inicialización (Init Script)</label>
+                  <textarea id="node-init-script" class="input-field code-textarea" rows="3" placeholder="# Comandos para ejecutar al arrancar&#10;sudo apt update && sudo apt install -y git curl&#10;echo 'Node listo'"></textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">🚀 Aprovisionar Servidor</button>
@@ -494,8 +499,8 @@
               </p>
               <ul>
                 <li><strong>Iniciar Servidor:</strong> Haz clic en <em>⚡ Iniciar Servidor</em> en la tarjeta del nodo. Esto dispara un runner real en GitHub Actions con servidor Tmate.</li>
-                <li><strong>Copiar SSH:</strong> Al iniciar, el runner emite una URL SSH dinámica real (ej. <code>ssh xxx@lon1.tmate.io</code>) que puedes copiar directamente a tu terminal.</li>
-                <li><strong>Web Shell:</strong> Abre una sesión interactiva en navegador haciendo clic en <em>🖥️ Web Shell</em>.</li>
+                <li><strong>Copiar SSH:</strong> Al iniciar, el runner emite una URL SSH dinámica real que puedes copiar directamente a tu terminal.</li>
+                <li><strong>Web Shell:</strong> Abre una sesión interactiva en vivo incrustada en el navegador.</li>
               </ul>
             </article>
 
@@ -603,9 +608,9 @@
     </div>
   </div>
 
-  <!-- MODAL: EDIT NODE -->
+  <!-- MODAL: EDIT NODE (FULL PARAMETERS) -->
   <div id="modal-edit-node" class="modal-backdrop hidden">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-header">
         <h3>⚙️ Editar Configuración de HiveNode</h3>
         <button class="modal-close" onclick="closeEditModal()">✕</button>
@@ -613,22 +618,93 @@
       <div class="modal-body">
         <form id="form-edit-node" onsubmit="handleSaveNodeEdit(event)">
           <input type="hidden" id="edit-node-id">
+
           <div class="form-group">
             <label>Nombre del Servidor</label>
             <input type="text" id="edit-node-name" class="input-field" required>
           </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sistema Operativo</label>
+              <select id="edit-node-os" class="input-field">
+                <option value="ubuntu-latest">Ubuntu Latest (24.04 LTS)</option>
+                <option value="ubuntu-22.04">Ubuntu 22.04 LTS</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Ciclo de Vida</label>
+              <select id="edit-node-lifecycle" class="input-field" onchange="onEditLifecycleChange()">
+                <option value="ttl_ephemeral">TTL Efímero (Apagado automático)</option>
+                <option value="lazarus_24_7">24/7 Lazarus Relay (Auto-Relevo Continuo)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 24/7 Edit Warning Alert Box -->
+          <div id="edit-node-247-warning" class="alert-box warning hidden">
+            ⚠️ <strong>Aviso de ToS de GitHub:</strong> El modo 24/7 mantiene el runner activo mediante auto-disparos recursivos antes del timeout de 6h. Usa con responsabilidad.
+          </div>
+
+          <div class="form-row" id="edit-ttl-row">
+            <div class="form-group">
+              <label>Tiempo de Vida (TTL Minutos)</label>
+              <input type="number" id="edit-node-ttl" class="input-field" placeholder="ej. 120" min="15" max="350">
+            </div>
+            <div class="form-group">
+              <label>Apagado por Inactividad (Minutos)</label>
+              <input type="number" id="edit-node-inactivity" class="input-field" placeholder="ej. 15" min="5" max="120">
+            </div>
+          </div>
+
           <div class="form-group">
-            <label>Ciclo de Vida</label>
-            <select id="edit-node-lifecycle" class="input-field">
-              <option value="ttl_ephemeral">TTL Efímero</option>
-              <option value="lazarus_24_7">24/7 Lazarus Relay</option>
+            <label>Almacenamiento y Persistencia</label>
+            <select id="edit-node-storage-type" class="input-field" onchange="onEditStorageTypeChange()">
+              <option value="vault_persistent">Vault Snapshot Persistente (.tar.zst + Releases)</option>
+              <option value="rolla_ball">Rolla-Ball (Terra Object Storage $0)</option>
+              <option value="s3_custom">S3 Compatible (AWS S3, Cloudflare R2, MinIO)</option>
+              <option value="ephemeral">Efímero Puro (Volátil, se borra al parar)</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>TTL (Minutos)</label>
-            <input type="number" id="edit-node-ttl" class="input-field" min="15" max="350">
+
+          <!-- Edit Rolla-Ball Sub-Config -->
+          <div id="edit-storage-rolla-config" class="sub-form-box hidden">
+            <div class="form-group">
+              <label>ID de la Rolla-Ball</label>
+              <input type="text" id="edit-rolla-ball-id" class="input-field" placeholder="ej. ball_my_dev_storage">
+            </div>
           </div>
-          <button type="submit" class="btn btn-primary btn-block">Guardar Cambios</button>
+
+          <!-- Edit S3 Sub-Config -->
+          <div id="edit-storage-s3-config" class="sub-form-box hidden">
+            <div class="form-row">
+              <div class="form-group">
+                <label>S3 Endpoint</label>
+                <input type="text" id="edit-s3-endpoint" class="input-field" placeholder="https://s3.amazonaws.com">
+              </div>
+              <div class="form-group">
+                <label>Bucket</label>
+                <input type="text" id="edit-s3-bucket" class="input-field" placeholder="my-mockhive-bucket">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Protocolo de Conexión & Túnel SSH</label>
+            <select id="edit-node-tunnel" class="input-field">
+              <option value="tmate">Tmate SSH (Automático, Cero Configuración)</option>
+              <option value="bore">Bore Reverse Proxy (Puerto TCP Directo)</option>
+              <option value="web_terminal">Web Terminal WebSocket (xterm.js en navegador)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Script de Inicialización (Init Script)</label>
+            <textarea id="edit-node-init-script" class="input-field code-textarea" rows="3" placeholder="# Comandos para ejecutar al arrancar"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Guardar Cambios del Servidor</button>
         </form>
       </div>
     </div>

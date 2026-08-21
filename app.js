@@ -69,10 +69,13 @@ function loadDefaultDeployedResources() {
       osImage: 'ubuntu-latest',
       lifecycleMode: 'lazarus_24_7',
       ttlMinutes: null,
+      inactivityMinutes: null,
       storage: { type: 'vault_persistent', mountPath: '/mockhive/data' },
       tunnelProvider: 'tmate',
+      initScript: '',
       status: 'stopped',
       sshCommand: null,
+      webCommand: null,
       uptimeSeconds: 0
     },
     {
@@ -81,10 +84,13 @@ function loadDefaultDeployedResources() {
       osImage: 'ubuntu-22.04',
       lifecycleMode: 'ttl_ephemeral',
       ttlMinutes: 180,
+      inactivityMinutes: 15,
       storage: { type: 'rolla_ball', rollaBallId: 'ball_dev_storage', mountPath: '/mockhive/data' },
       tunnelProvider: 'tmate',
+      initScript: '',
       status: 'stopped',
       sshCommand: null,
+      webCommand: null,
       uptimeSeconds: 0
     }
   ];
@@ -347,6 +353,7 @@ async function checkLiveStatusForNodes() {
         const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
         if (statData.status) node.status = statData.status;
         if (statData.sshCommand) node.sshCommand = statData.sshCommand;
+        if (statData.webCommand) node.webCommand = statData.webCommand;
       }
     } catch (e) {}
   }
@@ -508,9 +515,14 @@ function handleCreateNode(e) {
   const name = document.getElementById('node-name').value;
   const osImage = document.getElementById('node-os').value;
   const lifecycleMode = document.getElementById('node-lifecycle').value;
-  const ttlMinutes = lifecycleMode === 'lazarus_24_7' ? null : parseInt(document.getElementById('node-ttl').value, 10);
+  const ttlMinutes = lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('node-ttl').value, 10) || 120);
+  const inactivityMinutes = lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('node-inactivity').value, 10) || 15);
   const storageType = document.getElementById('node-storage-type').value;
+  const rollaBallId = document.getElementById('rolla-ball-id')?.value || '';
+  const s3Endpoint = document.getElementById('s3-endpoint')?.value || '';
+  const s3Bucket = document.getElementById('s3-bucket')?.value || '';
   const tunnelProvider = document.getElementById('node-tunnel').value;
+  const initScript = document.getElementById('node-init-script')?.value || '';
 
   const newNode = {
     nodeId: 'node_' + Math.random().toString(36).slice(2, 8),
@@ -518,10 +530,19 @@ function handleCreateNode(e) {
     osImage,
     lifecycleMode,
     ttlMinutes,
-    storage: { type: storageType, mountPath: '/mockhive/data' },
+    inactivityMinutes,
+    storage: { 
+      type: storageType, 
+      rollaBallId: storageType === 'rolla_ball' ? rollaBallId : undefined,
+      s3Endpoint: storageType === 's3_custom' ? s3Endpoint : undefined,
+      s3Bucket: storageType === 's3_custom' ? s3Bucket : undefined,
+      mountPath: '/mockhive/data' 
+    },
     tunnelProvider,
+    initScript,
     status: 'stopped',
     sshCommand: null,
+    webCommand: null,
     uptimeSeconds: 0,
     createdAt: new Date().toISOString()
   };
@@ -544,6 +565,7 @@ async function startNode(nodeId) {
 
   node.status = 'provisioning';
   node.sshCommand = null;
+  node.webCommand = null;
   renderAll();
   showToast(`Despachando runner de GitHub Actions para ${node.name}...`);
   logTelemetry(`[Runner Dispatch] Triggering hivenode.yml workflow on GitHub Actions...`);
@@ -590,6 +612,7 @@ async function startNode(nodeId) {
           if (statData.sshCommand) {
             node.status = 'running';
             node.sshCommand = statData.sshCommand;
+            node.webCommand = statData.webCommand;
             clearInterval(pollInterval);
             persistToGitHub();
             renderAll();
@@ -623,6 +646,7 @@ function stopNode(nodeId) {
   showConfirm('Detener Servidor', `¿Deseas detener el runner de GitHub Actions para '${node.name}'?`, async () => {
     node.status = 'stopped';
     node.sshCommand = null;
+    node.webCommand = null;
     persistToGitHub();
     renderAll();
     showToast(`Servidor '${node.name}' detenido.`);
@@ -664,6 +688,25 @@ function onStorageTypeChange() {
   const val = document.getElementById('node-storage-type').value;
   document.getElementById('storage-rolla-config').classList.toggle('hidden', val !== 'rolla_ball');
   document.getElementById('storage-s3-config').classList.toggle('hidden', val !== 's3_custom');
+}
+
+function onEditLifecycleChange() {
+  const val = document.getElementById('edit-node-lifecycle').value;
+  const warn = document.getElementById('edit-node-247-warning');
+  const ttlRow = document.getElementById('edit-ttl-row');
+  if (val === 'lazarus_24_7') {
+    warn.classList.remove('hidden');
+    if (ttlRow) ttlRow.classList.add('hidden');
+  } else {
+    warn.classList.add('hidden');
+    if (ttlRow) ttlRow.classList.remove('hidden');
+  }
+}
+
+function onEditStorageTypeChange() {
+  const val = document.getElementById('edit-node-storage-type').value;
+  document.getElementById('edit-storage-rolla-config').classList.toggle('hidden', val !== 'rolla_ball');
+  document.getElementById('edit-storage-s3-config').classList.toggle('hidden', val !== 's3_custom');
 }
 
 function renderPodsList() {
@@ -838,7 +881,6 @@ function openNodeShell(nodeId) {
   if (node.webCommand) {
     iframe.src = node.webCommand;
   } else {
-    // Fallback if only ssh is active
     iframe.src = 'about:blank';
   }
 
@@ -867,7 +909,7 @@ function copyModalSSH() {
   }
 }
 
-// ─── EDIT NODE MODAL ───────────────────────────────────────────────────────
+// ─── EDIT NODE MODAL (FULL PARAMETERS) ─────────────────────────────────────
 
 function openEditModal(nodeId) {
   const node = nodesList.find(n => n.nodeId === nodeId);
@@ -875,8 +917,22 @@ function openEditModal(nodeId) {
 
   document.getElementById('edit-node-id').value = node.nodeId;
   document.getElementById('edit-node-name').value = node.name;
-  document.getElementById('edit-node-lifecycle').value = node.lifecycleMode;
-  document.getElementById('edit-node-ttl').value = node.ttlMinutes || 120;
+  document.getElementById('edit-node-os').value = node.osImage || 'ubuntu-latest';
+  document.getElementById('edit-node-lifecycle').value = node.lifecycleMode || 'ttl_ephemeral';
+  document.getElementById('edit-node-ttl').value = node.ttlMinutes || '';
+  document.getElementById('edit-node-inactivity').value = node.inactivityMinutes || '';
+  
+  const storageType = node.storage?.type || 'vault_persistent';
+  document.getElementById('edit-node-storage-type').value = storageType;
+  document.getElementById('edit-rolla-ball-id').value = node.storage?.rollaBallId || '';
+  document.getElementById('edit-s3-endpoint').value = node.storage?.s3Endpoint || '';
+  document.getElementById('edit-s3-bucket').value = node.storage?.s3Bucket || '';
+
+  document.getElementById('edit-node-tunnel').value = node.tunnelProvider || 'tmate';
+  document.getElementById('edit-node-init-script').value = node.initScript || '';
+
+  onEditLifecycleChange();
+  onEditStorageTypeChange();
 
   document.getElementById('modal-edit-node').classList.remove('hidden');
 }
@@ -891,12 +947,27 @@ function handleSaveNodeEdit(e) {
   const node = nodesList.find(n => n.nodeId === nodeId);
   if (node) {
     node.name = document.getElementById('edit-node-name').value;
+    node.osImage = document.getElementById('edit-node-os').value;
     node.lifecycleMode = document.getElementById('edit-node-lifecycle').value;
-    node.ttlMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : parseInt(document.getElementById('edit-node-ttl').value, 10);
+    node.ttlMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('edit-node-ttl').value, 10) || 120);
+    node.inactivityMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : (parseInt(document.getElementById('edit-node-inactivity').value, 10) || 15);
+    
+    const storageType = document.getElementById('edit-node-storage-type').value;
+    node.storage = {
+      type: storageType,
+      rollaBallId: storageType === 'rolla_ball' ? document.getElementById('edit-rolla-ball-id').value : undefined,
+      s3Endpoint: storageType === 's3_custom' ? document.getElementById('edit-s3-endpoint').value : undefined,
+      s3Bucket: storageType === 's3_custom' ? document.getElementById('edit-s3-bucket').value : undefined,
+      mountPath: '/mockhive/data'
+    };
+
+    node.tunnelProvider = document.getElementById('edit-node-tunnel').value;
+    node.initScript = document.getElementById('edit-node-init-script').value;
+
     persistToGitHub();
     renderAll();
     closeEditModal();
-    showToast(`HiveNode '${node.name}' actualizado`);
-    logTelemetry(`[Node Updated] ${node.name} properties modified.`);
+    showToast(`HiveNode '${node.name}' actualizado con éxito`);
+    logTelemetry(`[Node Updated] ${node.name} full properties modified.`);
   }
 }
