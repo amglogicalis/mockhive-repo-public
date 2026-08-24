@@ -334,7 +334,8 @@ async function syncWithGitHub() {
     const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/data.json?t=${Date.now()}`, {
       headers: {
         'Authorization': 'token ' + githubPAT,
-        'Accept': 'application/vnd.github.v3+json'
+        'Accept': 'application/vnd.github.v3+json',
+        'Cache-Control': 'no-cache'
       }
     });
 
@@ -370,31 +371,28 @@ async function checkLiveStatusForNodes() {
       const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json?t=${Date.now()}`, {
         headers: {
           'Authorization': 'token ' + githubPAT,
-          'Accept': 'application/vnd.github.v3+json'
+          'Accept': 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache'
         }
       });
       if (res.ok) {
         const json = await res.json();
         const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
         
-        // If node is currently provisioning, do NOT let an old 'stopped' file override it!
-        if (node.status === 'provisioning') {
-          if (statData.status === 'running' && statData.sshCommand) {
-            const isFresh = !node.provisioningStartedAt || !statData.updatedAt || statData.updatedAt >= node.provisioningStartedAt;
-            if (isFresh) {
-              node.status = 'running';
-              node.sshCommand = statData.sshCommand;
-              node.webCommand = statData.webCommand;
-              node.provisioningStartedAt = null;
-            }
-          }
-        } else {
-          node.status = statData.status || node.status;
-          node.sshCommand = statData.status === 'running' ? statData.sshCommand : null;
-          node.webCommand = statData.status === 'running' ? statData.webCommand : null;
+        if (statData.status === 'running' && statData.sshCommand) {
+          node.status = 'running';
+          node.sshCommand = statData.sshCommand;
+          node.webCommand = statData.webCommand;
+          node.provisioningStartedAt = null;
+        } else if (statData.status === 'stopped' && node.status !== 'provisioning') {
+          node.status = 'stopped';
+          node.sshCommand = null;
+          node.webCommand = null;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Error checking status for node:', node.nodeId, e);
+    }
   }
 }
 
@@ -608,14 +606,11 @@ async function startNode(nodeId) {
   }
 
   node.status = 'provisioning';
-  node.provisioningStartedAt = new Date(Date.now() - 5000).toISOString();
   node.sshCommand = null;
   node.webCommand = null;
   renderAll();
   showToast(`Despachando runner de GitHub Actions para ${node.name}...`);
   logTelemetry(`[Runner Dispatch] Triggering hivenode.yml workflow on GitHub Actions...`);
-
-  const dispatchStartedAt = new Date(Date.now() - 5000).toISOString();
 
   try {
     const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/workflows/hivenode.yml/dispatches`, {
@@ -642,7 +637,7 @@ async function startNode(nodeId) {
     logTelemetry(`[Runner Launched] GitHub Actions workflow dispatched successfully. Polling live status...`);
     showToast(`Runner lanzado. Esperando conexión SSH de Tmate...`);
 
-    // Poll status from GitHub with cache-busting every 4s
+    // Poll status from GitHub with cache-busting every 3s
     let attempts = 0;
     const pollInterval = setInterval(async () => {
       attempts++;
@@ -650,20 +645,22 @@ async function startNode(nodeId) {
         const statRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json?t=${Date.now()}`, {
           headers: {
             'Authorization': 'token ' + githubPAT,
-            'Accept': 'application/vnd.github.v3+json'
+            'Accept': 'application/vnd.github.v3+json',
+            'Cache-Control': 'no-cache'
           }
         });
         if (statRes.ok) {
           const json = await statRes.json();
           const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
           
-          if (statData.status === 'running' && statData.sshCommand && (!statData.updatedAt || statData.updatedAt >= dispatchStartedAt)) {
+          if (statData.status === 'running' && statData.sshCommand) {
             node.status = 'running';
             node.sshCommand = statData.sshCommand;
             node.webCommand = statData.webCommand;
+            node.provisioningStartedAt = null;
             clearInterval(pollInterval);
-            persistToGitHub();
             renderAll();
+            persistToGitHub();
             
             if (activeNodeForShell && activeNodeForShell.nodeId === node.nodeId) {
               openNodeShell(node.nodeId);
@@ -675,7 +672,7 @@ async function startNode(nodeId) {
         }
       } catch (e) {}
 
-      if (attempts > 30) {
+      if (attempts > 35) {
         clearInterval(pollInterval);
         if (node.status === 'provisioning') {
           showToast('Tiempo de espera agotado al conectar runner. Reintenta.');
@@ -683,7 +680,7 @@ async function startNode(nodeId) {
           renderAll();
         }
       }
-    }, 4000);
+    }, 3000);
 
   } catch (err) {
     showToast('Error al disparar runner: ' + err.message);
