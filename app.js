@@ -777,21 +777,25 @@ async function stopNode(nodeId) {
 
     try {
       if (githubPAT && currentUser) {
-        // 1. Cancel in-progress runs
+        // 1. Cancel in-progress and queued runs
         try {
-          const runsRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/runs?status=in_progress`, {
+          const runsRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/runs?per_page=15`, {
             headers: { 'Authorization': 'token ' + githubPAT, 'Accept': 'application/vnd.github.v3+json' }
           });
           if (runsRes.ok) {
             const runsData = await runsRes.json();
             for (const r of (runsData.workflow_runs || [])) {
-              await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/runs/${r.id}/cancel`, {
-                method: 'POST',
-                headers: { 'Authorization': 'token ' + githubPAT, 'Accept': 'application/vnd.github.v3+json' }
-              });
+              if (r.status === 'in_progress' || r.status === 'queued') {
+                await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/runs/${r.id}/cancel`, {
+                  method: 'POST',
+                  headers: { 'Authorization': 'token ' + githubPAT, 'Accept': 'application/vnd.github.v3+json' }
+                });
+              }
             }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Error cancelling runs:', e);
+        }
 
         // 2. Reset status file in repo
         let shaArg = null;
@@ -823,9 +827,12 @@ async function stopNode(nodeId) {
           body: JSON.stringify(statBody)
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Error resetting status:', e);
+    }
 
     await persistToGitHub();
+    renderAll();
     showToast(`Servidor '${node.name}' detenido correctamente.`);
   });
 }
