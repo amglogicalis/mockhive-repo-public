@@ -33,6 +33,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+// Helper for Base64 Decoding UTF-8
+function decodeBase64(b64) {
+  try {
+    const cleaned = b64.replace(/[\r\n\s]/g, '');
+    return decodeURIComponent(escape(atob(cleaned)));
+  } catch (e) {
+    try {
+      return atob(b64.replace(/[\r\n\s]/g, ''));
+    } catch (err) {
+      return '{}';
+    }
+  }
+}
+
 // ─── AUTHENTICATION & GATE FLOW ──────────────────────────────────────────
 
 async function fetchGitHubUser(pat) {
@@ -57,7 +71,7 @@ async function handleGateLogin(e) {
   if (!pat) return;
 
   const btn = document.getElementById('btn-gate-submit');
-  btn.innerText = 'Validando token con GitHub...';
+  btn.innerHTML = '<span>⏳</span> <span>Validando token con GitHub...</span>';
   btn.disabled = true;
 
   try {
@@ -78,7 +92,7 @@ async function handleGateLogin(e) {
   } catch (err) {
     showToast('Error de autenticación: ' + err.message);
   } finally {
-    btn.innerText = '🚀 Iniciar Sesión con GitHub PAT';
+    btn.innerHTML = '<span>🚀</span> <span>Iniciar Sesión con GitHub PAT</span>';
     btn.disabled = false;
   }
 }
@@ -342,7 +356,7 @@ async function syncWithGitHub() {
     if (res.ok) {
       const dataJson = await res.json();
       vaultFileSha = dataJson.sha;
-      const decoded = atob(dataJson.content.replace(/\n/g, ''));
+      const decoded = decodeBase64(dataJson.content);
       const parsed = JSON.parse(decoded);
 
       nodesList = parsed.nodes || [];
@@ -377,13 +391,12 @@ async function checkLiveStatusForNodes() {
       });
       if (res.ok) {
         const json = await res.json();
-        const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
+        const statData = JSON.parse(decodeBase64(json.content));
         
         if (statData.status === 'running' && statData.sshCommand) {
           node.status = 'running';
           node.sshCommand = statData.sshCommand;
           node.webCommand = statData.webCommand;
-          node.provisioningStartedAt = null;
         } else if (statData.status === 'stopped' && node.status !== 'provisioning') {
           node.status = 'stopped';
           node.sshCommand = null;
@@ -613,6 +626,39 @@ async function startNode(nodeId) {
   logTelemetry(`[Runner Dispatch] Triggering hivenode.yml workflow on GitHub Actions...`);
 
   try {
+    // 1. Reset remote status file to provisioning to wipe previous runs
+    try {
+      let shaArg = null;
+      const exRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json?t=${Date.now()}`, {
+        headers: { 'Authorization': 'token ' + githubPAT, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (exRes.ok) {
+        const exJson = await exRes.json();
+        shaArg = exJson.sha;
+      }
+
+      const statBody = {
+        message: 'status: provisioning ' + node.nodeId,
+        content: btoa(JSON.stringify({
+          nodeId: node.nodeId,
+          sshCommand: null,
+          webCommand: null,
+          status: 'provisioning',
+          updatedAt: new Date().toISOString()
+        }, null, 2))
+      };
+      if (shaArg) statBody.sha = shaArg;
+
+      await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json`, {
+        method: 'PUT',
+        headers: { 'Authorization': 'token ' + githubPAT, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+        body: JSON.stringify(statBody)
+      });
+    } catch (e) {
+      console.warn('Pre-dispatch status reset:', e);
+    }
+
+    // 2. Dispatch the GitHub Actions Workflow
     const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/workflows/hivenode.yml/dispatches`, {
       method: 'POST',
       headers: {
@@ -637,7 +683,7 @@ async function startNode(nodeId) {
     logTelemetry(`[Runner Launched] GitHub Actions workflow dispatched successfully. Polling live status...`);
     showToast(`Runner lanzado. Esperando conexión SSH de Tmate...`);
 
-    // Poll status from GitHub with cache-busting every 3s
+    // 3. Poll status from GitHub with cache-busting every 3s
     let attempts = 0;
     const pollInterval = setInterval(async () => {
       attempts++;
@@ -651,13 +697,12 @@ async function startNode(nodeId) {
         });
         if (statRes.ok) {
           const json = await statRes.json();
-          const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
+          const statData = JSON.parse(decodeBase64(json.content));
           
           if (statData.status === 'running' && statData.sshCommand) {
             node.status = 'running';
             node.sshCommand = statData.sshCommand;
             node.webCommand = statData.webCommand;
-            node.provisioningStartedAt = null;
             clearInterval(pollInterval);
             renderAll();
             persistToGitHub();
@@ -672,7 +717,7 @@ async function startNode(nodeId) {
         }
       } catch (e) {}
 
-      if (attempts > 35) {
+      if (attempts > 40) {
         clearInterval(pollInterval);
         if (node.status === 'provisioning') {
           showToast('Tiempo de espera agotado al conectar runner. Reintenta.');
@@ -1136,7 +1181,13 @@ function handleSaveNodeEdit(e) {
   }
 }
 
-// Auto Heartbeat Poller for Live Status every 6s
+async function manualRefreshAll() {
+  showToast('Sincronizando estado con GitHub Actions...');
+  await syncWithGitHub();
+  showToast('✓ Estado e inventario actualizados');
+}
+
+// Auto Heartbeat Poller for Live Status every 5s
 setInterval(async () => {
   if (githubPAT && currentUser && nodesList.some(n => n.status === 'running' || n.status === 'provisioning')) {
     await checkLiveStatusForNodes();
@@ -1144,7 +1195,7 @@ setInterval(async () => {
     renderNodesList();
     renderDashboardFeed();
   }
-}, 6000);
+}, 5000);
 
 // Global Window Exports
 window.handleGateLogin = handleGateLogin;
@@ -1172,12 +1223,6 @@ window.onEditStorageTypeChange = onEditStorageTypeChange;
 window.testInvokePod = testInvokePod;
 window.runWaggleExec = runWaggleExec;
 window.syncWithGitHub = syncWithGitHub;
+window.manualRefreshAll = manualRefreshAll;
 window.handleBackdropClick = handleBackdropClick;
 window.closeAnyModal = closeAnyModal;
-
-async function manualRefreshAll() {
-  showToast('Sincronizando estado con GitHub Actions...');
-  await syncWithGitHub();
-  showToast('✓ Estado e inventario actualizados');
-}
-window.manualRefreshAll = manualRefreshAll;
