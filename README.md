@@ -119,6 +119,25 @@ Un **HiveNode** es una instancia de servidor virtual Ubuntu ejecutada en un runn
   - **Tailscale**: Nodo efímero privado con IP `100.x.y.z`.
 - **Edición Post-Creación**: Modifica TTL, nombre, variables de entorno y scripts de arranque en cualquier momento.
 
+### Conexión SSH Persistente & Tutorial de Desconexión Rápida (Multi-Connect)
+
+Cada HiveNode en ejecución ofrece un túnel SSH persistente que puedes reutilizar cuantas veces quieras:
+
+```bash
+# Ejemplo de conexión desde tu terminal (PowerShell, CMD, bash, VS Code)
+ssh eycNGwTsndkaa6eDf4s4XgakW@sfo2.tmate.io
+```
+
+#### ⚡ Cómo Desconectarse al Instante sin Apagar el Servidor (`Detach`):
+Dentro del servidor, la sesión de terminal está gestionada por un multiplexor persistente. Para salir a tu terminal local en medio segundo:
+1. Pulsa **`Ctrl + B`** (a la vez).
+2. Suelta ambas teclas y pulsa **`D`** (*detach*).
+
+Tu cliente SSH local se desconectará limpiamente devolviéndote a tu prompt local (`PS C:\...`), mientras **el servidor en la nube, tus programas en ejecución y todos los archivos en `/mockhive/data` permanecen 100% activos**.
+
+#### 🔄 Reconexión Infinita:
+Para volver a entrar, simplemente **ejecuta de nuevo el mismo comando SSH**. Volverás exactamente a la misma sesión con todos tus datos y procesos intactos.
+
 ### Comandos del CLI:
 ```bash
 # Crear un servidor virtual
