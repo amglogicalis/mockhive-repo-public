@@ -15,13 +15,126 @@ let gridJobsList = [];
 document.addEventListener('DOMContentLoaded', async () => {
   githubPAT = sessionStorage.getItem('mockhive_pat') || localStorage.getItem('mockhive_pat') || '';
   if (githubPAT) {
-    await validateAndLoadGitHubUser(githubPAT);
+    try {
+      currentUser = await fetchGitHubUser(githubPAT);
+      showAppLayout();
+      await syncWithGitHub();
+      logTelemetry('MockHive Studio connected. User @' + currentUser.login + ' loaded.');
+    } catch (e) {
+      console.warn('Stored token is invalid or expired:', e.message);
+      githubPAT = '';
+      currentUser = null;
+      sessionStorage.removeItem('mockhive_pat');
+      localStorage.removeItem('mockhive_pat');
+      showAuthGate();
+    }
   } else {
-    loadDefaultDeployedResources();
-    renderUnauthenticatedState();
+    showAuthGate();
   }
-  logTelemetry('MockHive Studio connected. Monochrome High-Tech Controller Ready.');
 });
+
+// ─── AUTHENTICATION & GATE FLOW ──────────────────────────────────────────
+
+async function fetchGitHubUser(pat) {
+  const res = await fetch('https://api.github.com/user', {
+    headers: {
+      'Authorization': 'token ' + pat,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Token no válido o expirado (HTTP 401)');
+    if (res.status === 403) throw new Error('Límite de API excedido o permisos insuficientes (HTTP 403)');
+    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+async function handleGateLogin(e) {
+  e.preventDefault();
+  const input = document.getElementById('input-pat-gate');
+  const pat = input.value.trim();
+  if (!pat) return;
+
+  const btn = document.getElementById('btn-gate-submit');
+  btn.innerText = 'Validando token con GitHub...';
+  btn.disabled = true;
+
+  try {
+    const user = await fetchGitHubUser(pat);
+    if (!user || !user.login) {
+      throw new Error('Token de GitHub no válido');
+    }
+
+    githubPAT = pat;
+    currentUser = user;
+    sessionStorage.setItem('mockhive_pat', pat);
+    localStorage.setItem('mockhive_pat', pat);
+
+    showAppLayout();
+    showToast(`Conectado como @${user.login}`);
+    logTelemetry(`[Auth Success] Logged in as @${user.login} (${user.name || 'Developer'}).`);
+    await syncWithGitHub();
+  } catch (err) {
+    showToast('Error de autenticación: ' + err.message);
+  } finally {
+    btn.innerText = '🚀 Iniciar Sesión con GitHub PAT';
+    btn.disabled = false;
+  }
+}
+
+function showAuthGate() {
+  const gate = document.getElementById('auth-gate');
+  const app = document.getElementById('app-layout');
+  if (gate) gate.style.display = 'flex';
+  if (app) app.style.display = 'none';
+
+  const gateInput = document.getElementById('input-pat-gate');
+  if (gateInput) {
+    gateInput.value = '';
+    gateInput.focus();
+  }
+}
+
+function showAppLayout() {
+  const gate = document.getElementById('auth-gate');
+  const app = document.getElementById('app-layout');
+  if (gate) gate.style.display = 'none';
+  if (app) app.style.display = 'flex';
+  renderAuthenticatedState();
+}
+
+function logout() {
+  githubPAT = '';
+  currentUser = null;
+  sessionStorage.removeItem('mockhive_pat');
+  localStorage.removeItem('mockhive_pat');
+  showAuthGate();
+  showToast('Sesión cerrada. Desconectado.');
+  logTelemetry('[Auth] Logged out. Return to auth gate.');
+}
+
+function renderAuthenticatedState() {
+  const headerAuth = document.getElementById('header-auth');
+  if (headerAuth && currentUser) {
+    headerAuth.innerHTML = `
+      <div class="user-profile-box">
+        <img src="${currentUser.avatar_url}" alt="${currentUser.login}" class="user-avatar">
+        <div class="user-info">
+          <span class="user-name">@${currentUser.login}</span>
+          <span class="user-badge">${currentUser.public_repos} repos • ${currentUser.plan ? currentUser.plan.name : 'GitHub'}</span>
+        </div>
+        <button class="btn-sm btn-secondary" style="margin-left: 8px;" onclick="logout()">🚪 Desconectar</button>
+      </div>
+    `;
+  }
+
+  const dot = document.getElementById('vault-dot');
+  if (dot) {
+    dot.className = 'status-dot connected';
+    document.getElementById('vault-status-text').innerText = `Vault: .mockhive-storage`;
+  }
+}
 
 // ─── GLOBAL MODAL / BACKDROP EVENT HANDLERS ────────────────────────────────
 
@@ -208,132 +321,6 @@ function switchTab(tabId) {
   }
 }
 
-// ─── AUTHENTICATION FLOW ───────────────────────────────────────────────────
-
-function openLoginModal() {
-  const modal = document.getElementById('modal-login');
-  modal.classList.remove('hidden');
-  modal.style.display = 'flex';
-  document.getElementById('input-pat').focus();
-}
-
-function closeLoginModal() {
-  const modal = document.getElementById('modal-login');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.style.display = 'none';
-  }
-}
-
-async function handleLoginPAT(e) {
-  e.preventDefault();
-  const pat = document.getElementById('input-pat').value.trim();
-  if (!pat) return;
-
-  const btn = e.target.querySelector('button[type="submit"]');
-  btn.innerText = 'Validando token...';
-  btn.disabled = true;
-
-  try {
-    const user = await fetchGitHubUser(pat);
-    if (!user || !user.login) {
-      throw new Error('Token no válido o sin permisos requeridos');
-    }
-
-    githubPAT = pat;
-    currentUser = user;
-    sessionStorage.setItem('mockhive_pat', pat);
-    localStorage.setItem('mockhive_pat', pat);
-
-    closeLoginModal();
-    renderAuthenticatedState();
-    showToast(`Conectado como @${user.login}`);
-    logTelemetry(`[Auth Success] Logged in as @${user.login} (${user.name || 'Developer'}).`);
-    await syncWithGitHub();
-  } catch (err) {
-    showToast('Error de autenticación: ' + err.message);
-  } finally {
-    btn.innerText = 'Conectar y Sincronizar';
-    btn.disabled = false;
-  }
-}
-
-async function fetchGitHubUser(pat) {
-  const res = await fetch('https://api.github.com/user', {
-    headers: {
-      'Authorization': 'token ' + pat,
-      'Accept': 'application/vnd.github.v3+json',
-      'Cache-Control': 'no-cache'
-    }
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  return await res.json();
-}
-
-async function validateAndLoadGitHubUser(pat) {
-  try {
-    currentUser = await fetchGitHubUser(pat);
-    renderAuthenticatedState();
-    await syncWithGitHub();
-  } catch (err) {
-    console.warn('PAT stored is invalid:', err);
-    loadDefaultDeployedResources();
-    renderUnauthenticatedState();
-  }
-}
-
-function logout() {
-  githubPAT = '';
-  currentUser = null;
-  sessionStorage.removeItem('mockhive_pat');
-  localStorage.removeItem('mockhive_pat');
-  loadDefaultDeployedResources();
-  renderUnauthenticatedState();
-  showToast('Sesión cerrada correctamente');
-  logTelemetry('[Auth] Logged out. Session cleared.');
-}
-
-function renderUnauthenticatedState() {
-  const headerAuth = document.getElementById('header-auth');
-  if (headerAuth) {
-    headerAuth.innerHTML = `<button class="btn btn-primary" onclick="openLoginModal()">🔑 Iniciar Sesión con GitHub PAT</button>`;
-  }
-
-  const banner = document.getElementById('unauth-banner');
-  if (banner) banner.classList.remove('hidden');
-
-  const dot = document.getElementById('vault-dot');
-  if (dot) {
-    dot.className = 'status-dot disconnected';
-    document.getElementById('vault-status-text').innerText = 'Sin autenticar';
-  }
-}
-
-function renderAuthenticatedState() {
-  const headerAuth = document.getElementById('header-auth');
-  if (headerAuth && currentUser) {
-    headerAuth.innerHTML = `
-      <div class="user-profile-box">
-        <img src="${currentUser.avatar_url}" alt="${currentUser.login}" class="user-avatar">
-        <div class="user-info">
-          <span class="user-name">@${currentUser.login}</span>
-          <span class="user-badge">${currentUser.public_repos} repos • ${currentUser.plan ? currentUser.plan.name : 'GitHub'}</span>
-        </div>
-        <button class="btn-sm btn-secondary" style="margin-left: 8px;" onclick="logout()">🚪 Cerrar Sesión</button>
-      </div>
-    `;
-  }
-
-  const banner = document.getElementById('unauth-banner');
-  if (banner) banner.classList.add('hidden');
-
-  const dot = document.getElementById('vault-dot');
-  if (dot) {
-    dot.className = 'status-dot connected';
-    document.getElementById('vault-status-text').innerText = `Vault: .mockhive-storage`;
-  }
-}
-
 // ─── GITHUB API STORAGE SYNCHRONIZATION ─────────────────────────────────────
 
 async function syncWithGitHub() {
@@ -347,8 +334,7 @@ async function syncWithGitHub() {
     const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/data.json?t=${Date.now()}`, {
       headers: {
         'Authorization': 'token ' + githubPAT,
-        'Accept': 'application/vnd.github.v3+json',
-        'Cache-Control': 'no-cache'
+        'Accept': 'application/vnd.github.v3+json'
       }
     });
 
@@ -384,8 +370,7 @@ async function checkLiveStatusForNodes() {
       const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json?t=${Date.now()}`, {
         headers: {
           'Authorization': 'token ' + githubPAT,
-          'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache'
+          'Accept': 'application/vnd.github.v3+json'
         }
       });
       if (res.ok) {
@@ -548,7 +533,7 @@ function renderNodesList() {
 function handleCreateNode(e) {
   e.preventDefault();
   if (!currentUser) {
-    openLoginModal();
+    showAuthGate();
     return;
   }
 
@@ -604,7 +589,7 @@ async function startNode(nodeId) {
   if (!node) return;
 
   if (!currentUser || !githubPAT) {
-    openLoginModal();
+    showAuthGate();
     return;
   }
 
@@ -650,15 +635,13 @@ async function startNode(nodeId) {
         const statRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json?t=${Date.now()}`, {
           headers: {
             'Authorization': 'token ' + githubPAT,
-            'Accept': 'application/vnd.github.v3+json',
-            'Cache-Control': 'no-cache'
+            'Accept': 'application/vnd.github.v3+json'
           }
         });
         if (statRes.ok) {
           const json = await statRes.json();
           const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
           
-          // Verify that this status is from the current dispatch
           if (statData.status === 'running' && statData.sshCommand && (!statData.updatedAt || statData.updatedAt >= dispatchStartedAt)) {
             node.status = 'running';
             node.sshCommand = statData.sshCommand;
@@ -667,7 +650,6 @@ async function startNode(nodeId) {
             persistToGitHub();
             renderAll();
             
-            // If shell modal is currently open, refresh it
             if (activeNodeForShell && activeNodeForShell.nodeId === node.nodeId) {
               openNodeShell(node.nodeId);
             }
@@ -707,7 +689,6 @@ async function stopNode(nodeId) {
     showToast(`Deteniendo servidor '${node.name}'...`);
     logTelemetry(`[Node Stopped] ${node.name} status: STOPPED`);
 
-    // Clean status in remote storage repo immediately
     try {
       if (githubPAT && currentUser) {
         // 1. Cancel in-progress runs
@@ -830,7 +811,7 @@ function renderPodsList() {
 
 function handleCreatePod(e) {
   e.preventDefault();
-  if (!currentUser) { openLoginModal(); return; }
+  if (!currentUser) { showAuthGate(); return; }
 
   const name = document.getElementById('pod-name').value;
   const runtime = document.getElementById('pod-runtime').value;
@@ -877,7 +858,7 @@ function testInvokePod() {
 
 function handleCreateWaggle(e) {
   e.preventDefault();
-  if (!currentUser) { openLoginModal(); return; }
+  if (!currentUser) { showAuthGate(); return; }
 
   const name = document.getElementById('waggle-name').value;
   const newWaggle = {
@@ -922,7 +903,7 @@ function runWaggleExec(waggleId) {
 
 function handleDispatchGrid(e) {
   e.preventDefault();
-  if (!currentUser) { openLoginModal(); return; }
+  if (!currentUser) { showAuthGate(); return; }
 
   const name = document.getElementById('grid-name').value;
   const workers = parseInt(document.getElementById('grid-workers').value, 10);
@@ -1080,7 +1061,6 @@ function openEditModal(nodeId) {
   document.getElementById('edit-node-os').value = node.osImage || 'ubuntu-latest';
   document.getElementById('edit-node-lifecycle').value = node.lifecycleMode || 'ttl_ephemeral';
   
-  // Clean TTL & Inactivity (no hardcoded fallback numbers)
   document.getElementById('edit-node-ttl').value = (node.ttlMinutes !== undefined && node.ttlMinutes !== null) ? node.ttlMinutes : '';
   document.getElementById('edit-node-inactivity').value = (node.inactivityMinutes !== undefined && node.inactivityMinutes !== null) ? node.inactivityMinutes : '';
   
@@ -1155,10 +1135,12 @@ setInterval(async () => {
 }, 6000);
 
 // Global Window Exports
+window.handleGateLogin = handleGateLogin;
+window.showAuthGate = showAuthGate;
+window.showAppLayout = showAppLayout;
+window.logout = logout;
 window.openNodeShell = openNodeShell;
 window.closeNodeShellModal = closeNodeShellModal;
-window.openLoginModal = openLoginModal;
-window.closeLoginModal = closeLoginModal;
 window.openEditModal = openEditModal;
 window.closeEditModal = closeEditModal;
 window.closeConfirmModal = closeConfirmModal;
@@ -1178,6 +1160,5 @@ window.onEditStorageTypeChange = onEditStorageTypeChange;
 window.testInvokePod = testInvokePod;
 window.runWaggleExec = runWaggleExec;
 window.syncWithGitHub = syncWithGitHub;
-window.logout = logout;
 window.handleBackdropClick = handleBackdropClick;
 window.closeAnyModal = closeAnyModal;

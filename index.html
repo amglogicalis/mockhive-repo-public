@@ -7,11 +7,49 @@
   <link rel="icon" type="image/png" href="assets/logo_mockhive.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-layout">
+
+  <!-- AUTH GATE SCREEN (FULL SCREEN MONOCHROME LOCK) -->
+  <div id="auth-gate" class="auth-gate-screen">
+    <div class="auth-gate-card">
+      <div class="gate-header">
+        <img src="assets/logo_mockhive.png" alt="MockHive Logo" class="gate-logo">
+        <h2>MOCKHIVE</h2>
+        <span class="gate-tag">The Zero-Cost Compute Cloud</span>
+        <p class="gate-desc">Servidores Virtuales Ubuntu (EC2), Step Functions, Micro-VMs y Clusters Map-Reduce sobre GitHub Actions a coste $0.</p>
+      </div>
+
+      <form id="form-auth-gate" onsubmit="handleGateLogin(event)">
+        <div class="form-group">
+          <label for="input-pat-gate">GitHub Personal Access Token (PAT)</label>
+          <input type="password" id="input-pat-gate" class="input-field input-lg" placeholder="ghp_... o github_pat_..." required autofocus autocomplete="current-password">
+        </div>
+
+        <div class="gate-features-box">
+          <div class="gate-feature-item">
+            <span class="feat-icon">🔒</span>
+            <span>Requiere permisos <code>repo</code> y <code>workflow</code></span>
+          </div>
+          <div class="gate-feature-item">
+            <span class="feat-icon">⚡</span>
+            <span>Sincronización directa con tu vault privado <code>.mockhive-storage</code></span>
+          </div>
+          <div class="gate-feature-item">
+            <span class="feat-icon">🛡️</span>
+            <span>100% Serverless, privado y en tu propia infraestructura</span>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-gate-submit" class="btn btn-primary btn-block btn-lg">🚀 Iniciar Sesión con GitHub PAT</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP LAYOUT (VISIBLE ONLY WHEN AUTHENTICATED) -->
+  <div id="app-layout" class="app-layout" style="display: none;">
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="brand">
@@ -51,8 +89,8 @@
 
       <div class="sidebar-footer">
         <div class="vault-status" id="vault-status-box">
-          <span class="status-dot disconnected" id="vault-dot"></span>
-          <span id="vault-status-text">Sin autenticar</span>
+          <span class="status-dot connected" id="vault-dot"></span>
+          <span id="vault-status-text">Vault: .mockhive-storage</span>
         </div>
         <div class="version-badge">v1.0.0 • Terra Ecosystem</div>
       </div>
@@ -71,15 +109,6 @@
           <!-- Rendered dynamically -->
         </div>
       </header>
-
-      <!-- UNLOGGED BANNER -->
-      <div id="unauth-banner" class="auth-banner hidden">
-        <div class="banner-content">
-          <h3>🔒 Inicia sesión con tu GitHub Personal Access Token (PAT)</h3>
-          <p>Conéctate para sincronizar tus recursos y lanzar runners reales en GitHub Actions.</p>
-        </div>
-        <button class="btn btn-primary" onclick="openLoginModal()">🔑 Iniciar Sesión con GitHub PAT</button>
-      </div>
 
       <!-- TAB: DASHBOARD -->
       <section id="tab-dashboard" class="tab-pane active">
@@ -550,8 +579,8 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- MODAL: CUSTOM CONFIRM -->
-  <div id="modal-confirm" class="modal-backdrop hidden">
-    <div class="modal-dialog">
+  <div id="modal-confirm" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-confirm')">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 id="confirm-modal-title">Confirmación</h3>
         <button class="modal-close" onclick="closeConfirmModal()">✕</button>
@@ -641,31 +670,9 @@
     </div>
   </div>
 
-  <!-- MODAL: LOGIN PAT -->
-  <div id="modal-login" class="modal-backdrop hidden">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3>🔑 Iniciar Sesión con GitHub PAT</h3>
-        <button class="modal-close" onclick="closeLoginModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-desc">
-          Introduce tu Personal Access Token (PAT) con permisos de <code>repo</code> y <code>workflow</code> para sincronizar tus recursos y lanzar runners de GitHub Actions.
-        </p>
-        <form onsubmit="handleLoginPAT(event)">
-          <div class="form-group">
-            <label>GitHub Personal Access Token</label>
-            <input type="password" id="input-pat" class="input-field" placeholder="ghp_..." required autofocus>
-          </div>
-          <button type="submit" class="btn btn-primary btn-block">Conectar y Sincronizar</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
   <!-- MODAL: EDIT NODE (FULL PARAMETERS) -->
-  <div id="modal-edit-node" class="modal-backdrop hidden">
-    <div class="modal-dialog modal-lg">
+  <div id="modal-edit-node" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-edit-node')">
+    <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3>⚙️ Editar Configuración de HiveNode</h3>
         <button class="modal-close" onclick="closeEditModal()">✕</button>
