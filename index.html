@@ -8,7 +8,169 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.0.2">
+  <style>
+    /* CRITICAL INLINE LOCKSCREEN STYLES */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+    }
+    .auth-gate-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at 50% 35%, #141414 0%, #000000 80%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 99999;
+    }
+    .auth-gate-card {
+      width: 100%;
+      max-width: 460px;
+      background: #0d0d0d;
+      border: 1px solid #262626;
+      border-radius: 16px;
+      padding: 38px 32px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .gate-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+    .gate-logo {
+      width: 68px !important;
+      height: 68px !important;
+      max-width: 68px !important;
+      max-height: 68px !important;
+      object-fit: contain;
+      border-radius: 16px;
+      border: 1px solid #333333;
+      margin-bottom: 16px;
+      background: #000000;
+      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05);
+    }
+    .gate-header h2 {
+      font-size: 1.65rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .gate-tag {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #888888;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .gate-desc {
+      font-size: 0.86rem;
+      color: #aaaaaa;
+      line-height: 1.45;
+      max-width: 380px;
+    }
+    #form-auth-gate {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+    }
+    .form-group-gate {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-group-gate label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #cccccc;
+    }
+    .input-field-gate {
+      width: 100%;
+      background: #000000;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 13px 16px;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+    .input-field-gate:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+    }
+    .gate-features-box {
+      background: #050505;
+      border: 1px solid #1a1a1a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 4px 0;
+    }
+    .gate-feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: #999999;
+    }
+    .gate-feature-item code {
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+    .btn-gate-submit {
+      width: 100%;
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      margin-top: 4px;
+    }
+    .btn-gate-submit:hover {
+      background: #e6e6e6;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+    }
+  </style>
 </head>
 <body>
 
@@ -19,31 +181,34 @@
         <img src="assets/logo_mockhive.png" alt="MockHive Logo" class="gate-logo">
         <h2>MOCKHIVE</h2>
         <span class="gate-tag">The Zero-Cost Compute Cloud</span>
-        <p class="gate-desc">Servidores Virtuales Ubuntu (EC2), Step Functions, Micro-VMs y Clusters Map-Reduce sobre GitHub Actions a coste $0.</p>
+        <p class="gate-desc">Servidores Virtuales Ubuntu (EC2), Step Functions, Micro-VMs y Clusters Map-Reduce sobre GitHub Actions.</p>
       </div>
 
       <form id="form-auth-gate" onsubmit="handleGateLogin(event)">
-        <div class="form-group">
+        <div class="form-group-gate">
           <label for="input-pat-gate">GitHub Personal Access Token (PAT)</label>
-          <input type="password" id="input-pat-gate" class="input-field input-lg" placeholder="ghp_... o github_pat_..." required autofocus autocomplete="current-password">
+          <input type="password" id="input-pat-gate" class="input-field-gate" placeholder="ghp_... o github_pat_..." required autofocus autocomplete="current-password">
         </div>
 
         <div class="gate-features-box">
           <div class="gate-feature-item">
-            <span class="feat-icon">🔒</span>
+            <span>🔒</span>
             <span>Requiere permisos <code>repo</code> y <code>workflow</code></span>
           </div>
           <div class="gate-feature-item">
-            <span class="feat-icon">⚡</span>
-            <span>Sincronización directa con tu vault privado <code>.mockhive-storage</code></span>
+            <span>⚡</span>
+            <span>Sincronización directa con <code>.mockhive-storage</code></span>
           </div>
           <div class="gate-feature-item">
-            <span class="feat-icon">🛡️</span>
-            <span>100% Serverless, privado y en tu propia infraestructura</span>
+            <span>🛡️</span>
+            <span>100% Serverless, privado y en tu propia cuenta</span>
           </div>
         </div>
 
-        <button type="submit" id="btn-gate-submit" class="btn btn-primary btn-block btn-lg">🚀 Iniciar Sesión con GitHub PAT</button>
+        <button type="submit" id="btn-gate-submit" class="btn-gate-submit">
+          <span>🚀</span>
+          <span>Iniciar Sesión con GitHub PAT</span>
+        </button>
       </form>
     </div>
   </div>
@@ -774,6 +939,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=1.0.2"></script>
 </body>
 </html>
