@@ -33,11 +33,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// Helper for Base64 Decoding UTF-8
+// Standard Safe UTF-8 Base64 Decoder (No Deprecated escape() / URIError)
 function decodeBase64(b64) {
+  if (!b64) return '{}';
   try {
-    const cleaned = b64.replace(/[\r\n\s]/g, '');
-    return decodeURIComponent(escape(atob(cleaned)));
+    const clean = b64.replace(/[\r\n\s]/g, '');
+    const bin = atob(clean);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+      bytes[i] = bin.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
   } catch (e) {
     try {
       return atob(b64.replace(/[\r\n\s]/g, ''));
@@ -364,6 +370,7 @@ async function syncWithGitHub() {
       podsList = parsed.pods || [];
       gridJobsList = parsed.grid || [];
 
+      // Check live status files in repo and merge
       await checkLiveStatusForNodes();
 
       renderAll();
@@ -380,6 +387,8 @@ async function syncWithGitHub() {
 
 async function checkLiveStatusForNodes() {
   if (!githubPAT || !currentUser) return;
+  let statusChanged = false;
+
   for (const node of nodesList) {
     try {
       const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/${node.nodeId}.json?t=${Date.now()}`, {
@@ -394,18 +403,28 @@ async function checkLiveStatusForNodes() {
         const statData = JSON.parse(decodeBase64(json.content));
         
         if (statData.status === 'running' && statData.sshCommand) {
-          node.status = 'running';
-          node.sshCommand = statData.sshCommand;
-          node.webCommand = statData.webCommand;
+          if (node.status !== 'running' || node.sshCommand !== statData.sshCommand) {
+            node.status = 'running';
+            node.sshCommand = statData.sshCommand;
+            node.webCommand = statData.webCommand;
+            statusChanged = true;
+          }
         } else if (statData.status === 'stopped' && node.status !== 'provisioning') {
-          node.status = 'stopped';
-          node.sshCommand = null;
-          node.webCommand = null;
+          if (node.status !== 'stopped') {
+            node.status = 'stopped';
+            node.sshCommand = null;
+            node.webCommand = null;
+            statusChanged = true;
+          }
         }
       }
     } catch (e) {
       console.warn('Error checking status for node:', node.nodeId, e);
     }
+  }
+
+  if (statusChanged) {
+    renderAll();
   }
 }
 
@@ -424,11 +443,24 @@ async function persistToGitHub() {
   const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
 
   try {
+    // 1. Fetch current SHA to eliminate 409 Conflict
+    let currentSha = vaultFileSha;
+    try {
+      const curRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/data.json?t=${Date.now()}`, {
+        headers: { 'Authorization': 'token ' + githubPAT, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (curRes.ok) {
+        const curJson = await curRes.json();
+        currentSha = curJson.sha;
+        vaultFileSha = currentSha;
+      }
+    } catch (e) {}
+
     const body = {
       message: 'chore: update deployed resources state',
       content: b64
     };
-    if (vaultFileSha) body.sha = vaultFileSha;
+    if (currentSha) body.sha = currentSha;
 
     const res = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/data.json`, {
       method: 'PUT',
@@ -717,7 +749,7 @@ async function startNode(nodeId) {
         }
       } catch (e) {}
 
-      if (attempts > 40) {
+      if (attempts > 45) {
         clearInterval(pollInterval);
         if (node.status === 'provisioning') {
           showToast('Tiempo de espera agotado al conectar runner. Reintenta.');
@@ -1187,15 +1219,12 @@ async function manualRefreshAll() {
   showToast('✓ Estado e inventario actualizados');
 }
 
-// Auto Heartbeat Poller for Live Status every 5s
+// Unconditional Background Poller for Live Status every 4s
 setInterval(async () => {
-  if (githubPAT && currentUser && nodesList.some(n => n.status === 'running' || n.status === 'provisioning')) {
+  if (githubPAT && currentUser) {
     await checkLiveStatusForNodes();
-    renderKPIs();
-    renderNodesList();
-    renderDashboardFeed();
   }
-}, 5000);
+}, 4000);
 
 // Global Window Exports
 window.handleGateLogin = handleGateLogin;
