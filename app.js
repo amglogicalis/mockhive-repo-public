@@ -355,7 +355,6 @@ async function syncWithGitHub() {
       headers: {
         'Authorization': 'token ' + githubPAT,
         'Accept': 'application/vnd.github.v3+json',
-        'Cache-Control': 'no-cache'
       }
     });
 
@@ -395,7 +394,6 @@ async function checkLiveStatusForNodes() {
         headers: {
           'Authorization': 'token ' + githubPAT,
           'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache'
         }
       });
       if (res.ok) {
@@ -724,7 +722,6 @@ async function startNode(nodeId) {
           headers: {
             'Authorization': 'token ' + githubPAT,
             'Accept': 'application/vnd.github.v3+json',
-            'Cache-Control': 'no-cache'
           }
         });
         if (statRes.ok) {
