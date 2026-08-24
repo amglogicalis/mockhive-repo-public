@@ -376,9 +376,23 @@ async function checkLiveStatusForNodes() {
       if (res.ok) {
         const json = await res.json();
         const statData = JSON.parse(atob(json.content.replace(/\n/g, '')));
-        node.status = statData.status || node.status;
-        node.sshCommand = statData.status === 'running' ? statData.sshCommand : null;
-        node.webCommand = statData.status === 'running' ? statData.webCommand : null;
+        
+        // If node is currently provisioning, do NOT let an old 'stopped' file override it!
+        if (node.status === 'provisioning') {
+          if (statData.status === 'running' && statData.sshCommand) {
+            const isFresh = !node.provisioningStartedAt || !statData.updatedAt || statData.updatedAt >= node.provisioningStartedAt;
+            if (isFresh) {
+              node.status = 'running';
+              node.sshCommand = statData.sshCommand;
+              node.webCommand = statData.webCommand;
+              node.provisioningStartedAt = null;
+            }
+          }
+        } else {
+          node.status = statData.status || node.status;
+          node.sshCommand = statData.status === 'running' ? statData.sshCommand : null;
+          node.webCommand = statData.status === 'running' ? statData.webCommand : null;
+        }
       }
     } catch (e) {}
   }
@@ -594,6 +608,7 @@ async function startNode(nodeId) {
   }
 
   node.status = 'provisioning';
+  node.provisioningStartedAt = new Date(Date.now() - 5000).toISOString();
   node.sshCommand = null;
   node.webCommand = null;
   renderAll();
@@ -1162,3 +1177,10 @@ window.runWaggleExec = runWaggleExec;
 window.syncWithGitHub = syncWithGitHub;
 window.handleBackdropClick = handleBackdropClick;
 window.closeAnyModal = closeAnyModal;
+
+async function manualRefreshAll() {
+  showToast('Sincronizando estado con GitHub Actions...');
+  await syncWithGitHub();
+  showToast('✓ Estado e inventario actualizados');
+}
+window.manualRefreshAll = manualRefreshAll;
