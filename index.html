@@ -519,7 +519,7 @@
 
                 <div class="form-group">
                   <label>Definición de Estados (JSON / YAML)</label>
-                  <textarea id="waggle-states-json" class="input-field code-textarea" rows="12" placeholder="{\n  &quot;StartAt&quot;: &quot;InitialTask&quot;,\n  &quot;States&quot;: {\n    &quot;InitialTask&quot;: {\n      &quot;Type&quot;: &quot;Task&quot;,\n      &quot;Next&quot;: &quot;SucceedState&quot;\n    },\n    &quot;SucceedState&quot;: {\n      &quot;Type&quot;: &quot;Succeed&quot;\n    }\n  }\n}"></textarea>
+                  <textarea id="waggle-states-json" class="input-field code-textarea" rows="12" placeholder="{&#10;  &quot;StartAt&quot;: &quot;InitialTask&quot;,&#10;  &quot;States&quot;: {&#10;    &quot;InitialTask&quot;: {&#10;      &quot;Type&quot;: &quot;Task&quot;,&#10;      &quot;Next&quot;: &quot;Done&quot;&#10;    },&#10;    &quot;Done&quot;: {&#10;      &quot;Type&quot;: &quot;Succeed&quot;&#10;    }&#10;  }&#10;}"></textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">⚡ Crear State Machine</button>
@@ -993,6 +993,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.1.0"></script>
+  <script src="app.js?v=1.1.1"></script>
 </body>
 </html>
