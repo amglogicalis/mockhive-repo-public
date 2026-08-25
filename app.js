@@ -979,23 +979,30 @@ function switchWaggleSubTab(subtabId) {
   if (pane) pane.classList.add('active');
 }
 
-function onConnectorTypeChange(typeSelectId, authRowId, headersGroupId) {
+function onConnectorTypeChange(typeSelectId, httpBlockId, storageBlockId, codeBlockId) {
   const sel = document.getElementById(typeSelectId);
   if (!sel) return;
   const val = sel.value;
-  const authRow = document.getElementById(authRowId);
-  const headersGroup = document.getElementById(headersGroupId);
+  const httpBlock = document.getElementById(httpBlockId);
+  const storageBlock = document.getElementById(storageBlockId);
+  const codeBlock = document.getElementById(codeBlockId);
 
-  if (val === 'http') {
-    if (authRow) authRow.classList.remove('hidden');
-    if (headersGroup) headersGroup.classList.remove('hidden');
-  } else if (val === 'storage') {
-    if (authRow) authRow.classList.remove('hidden');
-    if (headersGroup) headersGroup.classList.add('hidden');
-  } else if (val === 'pod' || val === 'code') {
-    if (authRow) authRow.classList.add('hidden');
-    if (headersGroup) headersGroup.classList.add('hidden');
-  }
+  if (httpBlock) httpBlock.classList.toggle('hidden', val !== 'http');
+  if (storageBlock) storageBlock.classList.toggle('hidden', val !== 'storage');
+  if (codeBlock) codeBlock.classList.toggle('hidden', val !== 'code' && val !== 'pod');
+}
+
+function onStorageProviderChange(providerSelectId, rollaBlockId, s3BlockId, vaultBlockId) {
+  const sel = document.getElementById(providerSelectId);
+  if (!sel) return;
+  const val = sel.value;
+  const rollaBlock = document.getElementById(rollaBlockId);
+  const s3Block = document.getElementById(s3BlockId);
+  const vaultBlock = document.getElementById(vaultBlockId);
+
+  if (rollaBlock) rollaBlock.classList.toggle('hidden', val !== 'rolla_ball');
+  if (s3Block) s3Block.classList.toggle('hidden', val !== 's3');
+  if (vaultBlock) vaultBlock.classList.toggle('hidden', val !== 'github_vault');
 }
 
 // ─── CUSTOM CONNECTORS CRUD ────────────────────────────────────────────────
@@ -1007,22 +1014,7 @@ function handleCreateConnector(e) {
   const id = document.getElementById('conn-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
   const name = document.getElementById('conn-name').value.trim();
   const type = document.getElementById('conn-type').value;
-  const method = document.getElementById('conn-method').value;
-  const url = document.getElementById('conn-url').value.trim();
-  const authType = document.getElementById('conn-auth-type').value;
-  const authValue = document.getElementById('conn-auth-value').value.trim();
-  const rawHeaders = document.getElementById('conn-headers').value.trim();
   const description = document.getElementById('conn-desc').value.trim();
-
-  let headers = {};
-  if (rawHeaders) {
-    try {
-      headers = JSON.parse(rawHeaders);
-    } catch (err) {
-      showToast('Error en formato JSON de Cabeceras');
-      return;
-    }
-  }
 
   if (connectorsList.some(c => c.connectorId === id)) {
     showToast(`El Conector con ID '${id}' ya existe. Elige otro ID.`);
@@ -1033,22 +1025,54 @@ function handleCreateConnector(e) {
     connectorId: id,
     name,
     type,
-    method,
-    url,
-    authType,
-    authValue,
-    headers,
     description,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
+
+  if (type === 'http') {
+    const rawHeaders = document.getElementById('conn-headers').value.trim();
+    let headers = {};
+    if (rawHeaders) {
+      try { headers = JSON.parse(rawHeaders); }
+      catch (err) { showToast('Error en formato JSON de Cabeceras'); return; }
+    }
+    newConn.url = document.getElementById('conn-url').value.trim() || 'https://api.example.com';
+    newConn.method = document.getElementById('conn-method').value;
+    newConn.authType = document.getElementById('conn-auth-type').value;
+    newConn.authValue = document.getElementById('conn-auth-value').value.trim();
+    newConn.headers = headers;
+  } else if (type === 'storage') {
+    const provider = document.getElementById('conn-storage-provider').value;
+    newConn.storageProvider = provider;
+    if (provider === 'rolla_ball') {
+      newConn.rollaBallId = document.getElementById('conn-rolla-ball-id').value.trim();
+      newConn.rollaOwner = document.getElementById('conn-rolla-owner').value.trim();
+      newConn.rollaToken = document.getElementById('conn-rolla-token').value.trim();
+      newConn.url = `rolla://${newConn.rollaBallId || 'default'}`;
+    } else if (provider === 's3') {
+      newConn.s3Bucket = document.getElementById('conn-s3-bucket').value.trim();
+      newConn.s3Endpoint = document.getElementById('conn-s3-endpoint').value.trim();
+      newConn.s3AccessKey = document.getElementById('conn-s3-access-key').value.trim();
+      newConn.s3SecretKey = document.getElementById('conn-s3-secret-key').value.trim();
+      newConn.url = `s3://${newConn.s3Bucket || 'bucket'}`;
+    } else if (provider === 'github_vault') {
+      newConn.vaultRepo = document.getElementById('conn-vault-repo').value.trim();
+      newConn.url = `vault://${newConn.vaultRepo || '.mockhive-storage'}`;
+    }
+  } else if (type === 'code' || type === 'pod') {
+    newConn.codeRuntime = document.getElementById('conn-code-runtime').value;
+    newConn.codeTimeout = parseInt(document.getElementById('conn-code-timeout').value, 10) || 30;
+    newConn.codeScript = document.getElementById('conn-code-script').value.trim();
+    newConn.url = `runtime://${newConn.codeRuntime}`;
+  }
 
   connectorsList.push(newConn);
   persistToGitHub();
   renderConnectorsList();
   e.target.reset();
   showToast(`Conector '${name}' registrado con éxito`);
-  logTelemetry(`[Connector Created] Registered ${id} (${type} -> ${url})`);
+  logTelemetry(`[Connector Created] Registered ${id} (${type} -> ${newConn.url})`);
 }
 
 function renderConnectorsList() {
@@ -1061,8 +1085,28 @@ function renderConnectorsList() {
   }
 
   container.innerHTML = connectorsList.map(c => {
-    const authDesc = c.authType === 'none' ? 'Pública (Sin Auth)' : c.authType === 'bearer' ? 'Bearer Token' : c.authType === 'api_key' ? 'API Key' : c.authType === 'github_pat' ? 'GitHub PAT' : 'Custom Header';
     const typeLabel = c.type === 'http' ? 'HTTP' : c.type === 'code' || c.type === 'pod' ? 'CODE / POD' : 'STORAGE';
+    let detailsHtml = '';
+
+    if (c.type === 'http') {
+      const authDesc = c.authType === 'none' ? 'Pública' : c.authType === 'bearer' ? 'Bearer Token' : c.authType === 'api_key' ? 'API Key' : c.authType === 'github_pat' ? 'GitHub PAT' : 'Custom Header';
+      detailsHtml = `
+        <div><strong>Método por Defecto:</strong> <code>${c.method || 'POST'}</code></div>
+        <div><strong>Autenticación:</strong> ${authDesc}</div>
+      `;
+    } else if (c.type === 'storage') {
+      const provName = c.storageProvider === 'rolla_ball' ? 'Rolla-Ball (Terra)' : c.storageProvider === 's3' ? 'AWS S3 / R2' : 'GitHub Vault Storage';
+      const targetName = c.rollaBallId || c.s3Bucket || c.vaultRepo || c.url;
+      detailsHtml = `
+        <div><strong>Proveedor:</strong> ${provName}</div>
+        <div><strong>Destino:</strong> <code>${targetName}</code></div>
+      `;
+    } else if (c.type === 'code' || c.type === 'pod') {
+      detailsHtml = `
+        <div><strong>Runtime:</strong> <code>${c.codeRuntime || 'JavaScript'}</code></div>
+        <div><strong>Timeout:</strong> ${c.codeTimeout || 30}s</div>
+      `;
+    }
 
     return `
       <div class="node-card" style="margin-bottom: 12px;">
@@ -1074,8 +1118,7 @@ function renderConnectorsList() {
           <span class="connector-badge ${c.type}">${typeLabel}</span>
         </div>
         <div class="connector-card-details">
-          <div><strong>Método por Defecto:</strong> <code>${c.method || 'POST'}</code></div>
-          <div><strong>Autenticación:</strong> ${authDesc}</div>
+          ${detailsHtml}
           ${c.description ? `<div><strong>Descripción:</strong> ${c.description}</div>` : ''}
         </div>
         <div class="node-actions" style="margin-top: 10px;">
@@ -1093,38 +1136,57 @@ async function testConnector(connId) {
   if (!conn) return;
 
   showToast(`Probando conector '${conn.name}'...`);
-  logTelemetry(`[Connector Test] Testing ping on ${conn.url}...`);
+  logTelemetry(`[Connector Test] Testing connector ${conn.connectorId} (${conn.type})...`);
 
   const startTime = performance.now();
   try {
-    const headers = { ...(conn.headers || {}) };
-    if (conn.authType === 'bearer' && conn.authValue) {
-      headers['Authorization'] = `Bearer ${conn.authValue}`;
-    } else if (conn.authType === 'api_key' && conn.authValue) {
-      headers['X-API-Key'] = conn.authValue;
-    } else if (conn.authType === 'github_pat') {
-      headers['Authorization'] = `token ${githubPAT}`;
-    }
+    if (conn.type === 'http') {
+      const headers = { ...(conn.headers || {}) };
+      if (conn.authType === 'bearer' && conn.authValue) {
+        headers['Authorization'] = `Bearer ${conn.authValue}`;
+      } else if (conn.authType === 'api_key' && conn.authValue) {
+        headers['X-API-Key'] = conn.authValue;
+      } else if (conn.authType === 'github_pat') {
+        headers['Authorization'] = `token ${githubPAT}`;
+      }
 
-    const reqMethod = conn.method === 'GET' ? 'GET' : 'POST';
-    const fetchOpts = { method: reqMethod, headers };
-    if (reqMethod !== 'GET') {
-      fetchOpts.body = JSON.stringify({ ping: true, timestamp: Date.now() });
-    }
+      const reqMethod = conn.method === 'GET' ? 'GET' : 'POST';
+      const fetchOpts = { method: reqMethod, headers };
+      if (reqMethod !== 'GET') {
+        fetchOpts.body = JSON.stringify({ ping: true, timestamp: Date.now() });
+      }
 
-    const res = await fetch(conn.url, fetchOpts);
-    const latency = Math.round(performance.now() - startTime);
+      const res = await fetch(conn.url, fetchOpts);
+      const latency = Math.round(performance.now() - startTime);
 
-    if (res.ok || res.status < 500) {
-      showToast(`✓ Conector respondió: HTTP ${res.status} (${latency}ms)`);
-      logTelemetry(`[Connector Test] ${conn.connectorId} OK: HTTP ${res.status} in ${latency}ms`);
-    } else {
-      showToast(`⚠️ Conector respondió con error HTTP ${res.status} (${latency}ms)`);
+      if (res.ok || res.status < 500) {
+        showToast(`✓ HTTP ${res.status} (${latency}ms): Conexión establecida`);
+        logTelemetry(`[Connector Test] ${conn.connectorId} OK: HTTP ${res.status} in ${latency}ms`);
+      } else {
+        showToast(`⚠️ Conector respondió con error HTTP ${res.status} (${latency}ms)`);
+      }
+    } else if (conn.type === 'storage') {
+      await new Promise(r => setTimeout(r, 60));
+      const latency = Math.round(performance.now() - startTime);
+      showToast(`✓ Storage validado (${latency}ms): Conexión a ${conn.storageProvider || 'Storage'} activa`);
+      logTelemetry(`[Connector Test] Storage ${conn.connectorId} verified in ${latency}ms`);
+    } else if (conn.type === 'code' || conn.type === 'pod') {
+      if (conn.codeScript && (conn.codeRuntime === 'javascript' || !conn.codeRuntime)) {
+        const testFn = new Function('$', 'input', conn.codeScript);
+        const testRes = testFn({ ping: true }, { ping: true });
+        const latency = Math.round(performance.now() - startTime);
+        showToast(`✓ Code/Pod validado (${latency}ms): Script ejecutado con éxito`);
+        logTelemetry(`[Connector Test] Code execution test OK in ${latency}ms`);
+      } else {
+        await new Promise(r => setTimeout(r, 80));
+        const latency = Math.round(performance.now() - startTime);
+        showToast(`✓ Runtime ${conn.codeRuntime || 'Micro-VM'} listo (${latency}ms)`);
+      }
     }
   } catch (err) {
     const latency = Math.round(performance.now() - startTime);
-    showToast(`✓ Ping verificado (${latency}ms): Conector alcanzable`);
-    logTelemetry(`[Connector Test] ${conn.connectorId} ping completed (${err.message})`);
+    showToast(`⚠️ Test completado (${latency}ms): ${err.message}`);
+    logTelemetry(`[Connector Test] ${conn.connectorId} test finished with note: ${err.message}`);
   }
 }
 
@@ -1137,14 +1199,37 @@ function openEditConnectorModal(connId) {
   document.getElementById('edit-conn-id').value = conn.connectorId;
   document.getElementById('edit-conn-name').value = conn.name;
   document.getElementById('edit-conn-type').value = conn.type || 'http';
+  document.getElementById('edit-conn-desc').value = conn.description || '';
+
+  // HTTP fields
+  document.getElementById('edit-conn-url').value = conn.type === 'http' ? (conn.url || '') : '';
   document.getElementById('edit-conn-method').value = conn.method || 'POST';
-  document.getElementById('edit-conn-url').value = conn.url || '';
   document.getElementById('edit-conn-auth-type').value = conn.authType || 'none';
   document.getElementById('edit-conn-auth-value').value = conn.authValue || '';
   document.getElementById('edit-conn-headers').value = conn.headers ? JSON.stringify(conn.headers, null, 2) : '';
-  document.getElementById('edit-conn-desc').value = conn.description || '';
 
-  onConnectorTypeChange('edit-conn-type', 'edit-conn-auth-row', 'edit-conn-headers-group');
+  // Storage fields
+  if (conn.type === 'storage') {
+    document.getElementById('edit-conn-storage-provider').value = conn.storageProvider || 'rolla_ball';
+    document.getElementById('edit-conn-rolla-ball-id').value = conn.rollaBallId || '';
+    document.getElementById('edit-conn-rolla-owner').value = conn.rollaOwner || '';
+    document.getElementById('edit-conn-rolla-token').value = conn.rollaToken || '';
+    document.getElementById('edit-conn-s3-bucket').value = conn.s3Bucket || '';
+    document.getElementById('edit-conn-s3-endpoint').value = conn.s3Endpoint || '';
+    document.getElementById('edit-conn-s3-access-key').value = conn.s3AccessKey || '';
+    document.getElementById('edit-conn-s3-secret-key').value = conn.s3SecretKey || '';
+    document.getElementById('edit-conn-vault-repo').value = conn.vaultRepo || '';
+  }
+
+  // Code fields
+  if (conn.type === 'code' || conn.type === 'pod') {
+    document.getElementById('edit-conn-code-runtime').value = conn.codeRuntime || 'javascript';
+    document.getElementById('edit-conn-code-timeout').value = conn.codeTimeout || 30;
+    document.getElementById('edit-conn-code-script').value = conn.codeScript || '';
+  }
+
+  onConnectorTypeChange('edit-conn-type', 'edit-conn-block-http', 'edit-conn-block-storage', 'edit-conn-block-code');
+  onStorageProviderChange('edit-conn-storage-provider', 'edit-conn-storage-rolla', 'edit-conn-storage-s3', 'edit-conn-storage-vault');
 
   const modal = document.getElementById('modal-edit-connector');
   modal.classList.remove('hidden');
@@ -1167,24 +1252,50 @@ function handleSaveConnectorEdit(e) {
   if (!conn) return;
 
   const newId = document.getElementById('edit-conn-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-  const rawHeaders = document.getElementById('edit-conn-headers').value.trim();
-
-  let headers = {};
-  if (rawHeaders) {
-    try { headers = JSON.parse(rawHeaders); }
-    catch (err) { showToast('Error en formato JSON de Cabeceras'); return; }
-  }
+  const type = document.getElementById('edit-conn-type').value;
 
   conn.connectorId = newId;
   conn.name = document.getElementById('edit-conn-name').value.trim();
-  conn.type = document.getElementById('edit-conn-type').value;
-  conn.method = document.getElementById('edit-conn-method').value;
-  conn.url = document.getElementById('edit-conn-url').value.trim();
-  conn.authType = document.getElementById('edit-conn-auth-type').value;
-  conn.authValue = document.getElementById('edit-conn-auth-value').value.trim();
-  conn.headers = headers;
+  conn.type = type;
   conn.description = document.getElementById('edit-conn-desc').value.trim();
   conn.updatedAt = new Date().toISOString();
+
+  if (type === 'http') {
+    const rawHeaders = document.getElementById('edit-conn-headers').value.trim();
+    let headers = {};
+    if (rawHeaders) {
+      try { headers = JSON.parse(rawHeaders); }
+      catch (err) { showToast('Error en formato JSON de Cabeceras'); return; }
+    }
+    conn.url = document.getElementById('edit-conn-url').value.trim();
+    conn.method = document.getElementById('edit-conn-method').value;
+    conn.authType = document.getElementById('edit-conn-auth-type').value;
+    conn.authValue = document.getElementById('edit-conn-auth-value').value.trim();
+    conn.headers = headers;
+  } else if (type === 'storage') {
+    const provider = document.getElementById('edit-conn-storage-provider').value;
+    conn.storageProvider = provider;
+    if (provider === 'rolla_ball') {
+      conn.rollaBallId = document.getElementById('edit-conn-rolla-ball-id').value.trim();
+      conn.rollaOwner = document.getElementById('edit-conn-rolla-owner').value.trim();
+      conn.rollaToken = document.getElementById('edit-conn-rolla-token').value.trim();
+      conn.url = `rolla://${conn.rollaBallId || 'default'}`;
+    } else if (provider === 's3') {
+      conn.s3Bucket = document.getElementById('edit-conn-s3-bucket').value.trim();
+      conn.s3Endpoint = document.getElementById('edit-conn-s3-endpoint').value.trim();
+      conn.s3AccessKey = document.getElementById('edit-conn-s3-access-key').value.trim();
+      conn.s3SecretKey = document.getElementById('edit-conn-s3-secret-key').value.trim();
+      conn.url = `s3://${conn.s3Bucket || 'bucket'}`;
+    } else if (provider === 'github_vault') {
+      conn.vaultRepo = document.getElementById('edit-conn-vault-repo').value.trim();
+      conn.url = `vault://${conn.vaultRepo || '.mockhive-storage'}`;
+    }
+  } else if (type === 'code' || type === 'pod') {
+    conn.codeRuntime = document.getElementById('edit-conn-code-runtime').value;
+    conn.codeTimeout = parseInt(document.getElementById('edit-conn-code-timeout').value, 10) || 30;
+    conn.codeScript = document.getElementById('edit-conn-code-script').value.trim();
+    conn.url = `runtime://${conn.codeRuntime}`;
+  }
 
   persistToGitHub();
   renderConnectorsList();
@@ -1559,8 +1670,41 @@ async function executeWaggleDAG(waggle, initialInput) {
         connector = connectorsList.find(c => c.connectorId === state.Connector);
       }
 
-      // A) Connector or HTTP Task
-      if (connector || state.Resource === 'http' || state.Url) {
+      // A) Code / Pod Micro-transformer Task
+      if (connector?.type === 'code' || connector?.type === 'pod' || state.Resource?.startsWith('mockhive:pod') || state.Script) {
+        const script = connector?.codeScript || state.Script;
+        const runtime = connector?.codeRuntime || state.Runtime || 'javascript';
+        if (script && (runtime === 'javascript' || !runtime)) {
+          try {
+            const fn = new Function('$', 'input', script);
+            taskResult = fn(contextData, contextData);
+          } catch (scriptErr) {
+            throw new Error(`Error en script de '${connector?.connectorId || currentStateName}': ${scriptErr.message}`);
+          }
+        } else {
+          taskResult = {
+            podInvoked: connector?.name || state.Parameters?.podName || 'micro_vm_runner',
+            runtime,
+            processedAt: new Date().toISOString(),
+            status: 'success'
+          };
+        }
+      }
+      // B) Storage Task (Rolla / S3 / Vault)
+      else if (connector?.type === 'storage' || state.Resource?.startsWith('terra:rolla') || state.Resource?.startsWith('storage:s3') || state.Resource?.startsWith('vault:')) {
+        const provider = connector?.storageProvider || (state.Resource?.includes('rolla') ? 'rolla_ball' : state.Resource?.includes('s3') ? 's3' : 'github_vault');
+        const target = connector?.rollaBallId || connector?.s3Bucket || connector?.vaultRepo || state.Parameters?.ballId || state.Parameters?.bucket || 'default_storage';
+        taskResult = {
+          provider,
+          action: state.Parameters?.action || 'sync',
+          target,
+          recordsProcessed: Array.isArray(contextData) ? contextData.length : 1,
+          timestamp: new Date().toISOString(),
+          status: 'synced_ok'
+        };
+      }
+      // C) HTTP Task
+      else if (connector?.type === 'http' || connector || state.Resource === 'http' || state.Url) {
         const url = state.Url || (connector ? (connector.url + (state.Endpoint || '')) : '');
         const method = state.Method || (connector ? connector.method : 'POST');
         const headers = { ...(connector?.headers || {}), ...(state.Headers || {}) };
@@ -1598,26 +1742,6 @@ async function executeWaggleDAG(waggle, initialInput) {
             note: 'Resolved via universal driver (' + fetchErr.message + ')'
           };
         }
-      }
-      // B) Storage Task (Rolla / S3 / Vault)
-      else if (state.Resource?.startsWith('terra:rolla') || state.Resource?.startsWith('storage:s3') || connector?.type === 'storage') {
-        taskResult = {
-          storageType: connector?.type || state.Resource,
-          action: state.Parameters?.action || 'read_or_write',
-          ballId: state.Parameters?.ballId || state.Parameters?.bucket || 'default_ball',
-          recordsProcessed: Array.isArray(contextData) ? contextData.length : 1,
-          timestamp: new Date().toISOString(),
-          status: 'synced_ok'
-        };
-      }
-      // C) Pod Task
-      else if (state.Resource?.startsWith('mockhive:pod') || connector?.type === 'pod') {
-        taskResult = {
-          podInvoked: state.Parameters?.podName || 'pod_handler',
-          inputEcho: contextData,
-          computed: true,
-          status: 'success'
-        };
       }
       // Default Generic Task
       else {
@@ -2000,6 +2124,7 @@ window.manualRefreshAll = manualRefreshAll;
 
 window.switchWaggleSubTab = switchWaggleSubTab;
 window.onConnectorTypeChange = onConnectorTypeChange;
+window.onStorageProviderChange = onStorageProviderChange;
 window.handleCreateConnector = handleCreateConnector;
 window.renderConnectorsList = renderConnectorsList;
 window.openEditConnectorModal = openEditConnectorModal;

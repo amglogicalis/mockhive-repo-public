@@ -591,51 +591,141 @@
                     </div>
                   </div>
 
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label>Tipo de Conector</label>
-                      <select id="conn-type" class="input-field" onchange="onConnectorTypeChange('conn-type', 'conn-auth-row', 'conn-headers-group')">
-                        <option value="http">HTTP (Universal REST / GraphQL / Webhook)</option>
-                        <option value="code">Code / Pod (Micro-Transformador en JS / Python / Bash)</option>
-                        <option value="storage">Storage (Blob / Object Storage - S3, Rolla, Buckets, Vault)</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label>Método HTTP por Defecto</label>
-                      <select id="conn-method" class="input-field">
-                        <option value="POST">POST</option>
-                        <option value="GET">GET</option>
-                        <option value="PUT">PUT</option>
-                        <option value="DELETE">DELETE</option>
-                      </select>
-                    </div>
-                  </div>
-
                   <div class="form-group">
-                    <label>Base URL / Endpoint del Servicio</label>
-                    <input type="text" id="conn-url" class="input-field" placeholder="https://api.mantx.terra.dev o https://httpbin.org/post" required>
+                    <label>Tipo de Conector</label>
+                    <select id="conn-type" class="input-field" onchange="onConnectorTypeChange('conn-type', 'conn-block-http', 'conn-block-storage', 'conn-block-code')">
+                      <option value="http">HTTP (Universal REST / GraphQL / Webhook)</option>
+                      <option value="storage">Storage (Blob / Object Storage - S3, Rolla, Buckets, Vault)</option>
+                      <option value="code">Code / Pod (Micro-Transformador en JS / Python / Bash)</option>
+                    </select>
                   </div>
 
-                  <div class="form-row" id="conn-auth-row">
+                  <!-- 1. DYNAMIC HTTP BLOCK -->
+                  <div id="conn-block-http">
+                    <div class="form-row">
+                      <div class="form-group" style="flex: 2;">
+                        <label>Base URL / Endpoint del Servicio</label>
+                        <input type="text" id="conn-url" class="input-field" placeholder="https://api.mantx.terra.dev o https://httpbin.org/post">
+                      </div>
+                      <div class="form-group" style="flex: 1;">
+                        <label>Método HTTP por Defecto</label>
+                        <select id="conn-method" class="input-field">
+                          <option value="POST">POST</option>
+                          <option value="GET">GET</option>
+                          <option value="PUT">PUT</option>
+                          <option value="DELETE">DELETE</option>
+                          <option value="PATCH">PATCH</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label>Tipo de Autenticación</label>
+                        <select id="conn-auth-type" class="input-field">
+                          <option value="none">Sin Autenticación (Pública)</option>
+                          <option value="bearer">Bearer Token (Header Authorization)</option>
+                          <option value="api_key">API Key (Header X-API-Key)</option>
+                          <option value="github_pat">GitHub PAT (Token Actual de Sesión)</option>
+                          <option value="custom_header">Cabecera de Auth Personalizada</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label>Token / Clave Secreta (Opcional)</label>
+                        <input type="password" id="conn-auth-value" class="input-field" placeholder="token_secreto_o_key...">
+                      </div>
+                    </div>
+
                     <div class="form-group">
-                      <label>Tipo de Autenticación</label>
-                      <select id="conn-auth-type" class="input-field">
-                        <option value="none">Sin Autenticación (Pública)</option>
-                        <option value="bearer">Bearer Token (Header Authorization)</option>
-                        <option value="api_key">API Key (Header X-API-Key)</option>
-                        <option value="github_pat">GitHub PAT (Token Actual de Sesión)</option>
-                        <option value="custom_header">Cabecera de Auth Personalizada</option>
+                      <label>Cabeceras Personalizadas (JSON Opcional)</label>
+                      <textarea id="conn-headers" class="input-field code-textarea" rows="2" placeholder="{ &quot;Content-Type&quot;: &quot;application/json&quot; }"></textarea>
+                    </div>
+                  </div>
+
+                  <!-- 2. DYNAMIC STORAGE BLOCK -->
+                  <div id="conn-block-storage" class="hidden">
+                    <div class="form-group">
+                      <label>Proveedor de Almacenamiento</label>
+                      <select id="conn-storage-provider" class="input-field" onchange="onStorageProviderChange('conn-storage-provider', 'conn-storage-rolla', 'conn-storage-s3', 'conn-storage-vault')">
+                        <option value="rolla_ball">Rolla-Ball Storage (Terra Ecosystem)</option>
+                        <option value="s3">AWS S3 / Cloudflare R2 / MinIO Bucket</option>
+                        <option value="github_vault">GitHub Vault Storage (.mockhive-storage)</option>
                       </select>
                     </div>
-                    <div class="form-group">
-                      <label>Token / Clave Secreta (Opcional)</label>
-                      <input type="password" id="conn-auth-value" class="input-field" placeholder="token_secreto_o_key...">
+
+                    <!-- Rolla Sub-fields -->
+                    <div id="conn-storage-rolla">
+                      <div class="form-row">
+                        <div class="form-group">
+                          <label>Rolla Ball ID</label>
+                          <input type="text" id="conn-rolla-ball-id" class="input-field" placeholder="ej. ball_orders_2026">
+                        </div>
+                        <div class="form-group">
+                          <label>Owner / Namespace (Opcional)</label>
+                          <input type="text" id="conn-rolla-owner" class="input-field" placeholder="ej. amglogicalis">
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label>Rolla Auth Token (Opcional)</label>
+                        <input type="password" id="conn-rolla-token" class="input-field" placeholder="Token Rolla si el Ball es privado">
+                      </div>
+                    </div>
+
+                    <!-- S3 Sub-fields -->
+                    <div id="conn-storage-s3" class="hidden">
+                      <div class="form-row">
+                        <div class="form-group">
+                          <label>Bucket Name S3</label>
+                          <input type="text" id="conn-s3-bucket" class="input-field" placeholder="ej. my-analytics-bucket">
+                        </div>
+                        <div class="form-group">
+                          <label>Endpoint / Región S3</label>
+                          <input type="text" id="conn-s3-endpoint" class="input-field" placeholder="ej. s3.us-east-1.amazonaws.com o auto">
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <div class="form-group">
+                          <label>AWS Access Key ID</label>
+                          <input type="password" id="conn-s3-access-key" class="input-field" placeholder="AKIA...">
+                        </div>
+                        <div class="form-group">
+                          <label>AWS Secret Access Key</label>
+                          <input type="password" id="conn-s3-secret-key" class="input-field" placeholder="Secret Key...">
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Vault Sub-fields -->
+                    <div id="conn-storage-vault" class="hidden">
+                      <div class="form-group">
+                        <label>Ruta dentro del Vault</label>
+                        <input type="text" id="conn-vault-repo" class="input-field" placeholder="ej. datasets/orders/">
+                      </div>
                     </div>
                   </div>
 
-                  <div class="form-group" id="conn-headers-group">
-                    <label>Cabeceras Personalizadas (JSON Opcional)</label>
-                    <textarea id="conn-headers" class="input-field code-textarea" rows="2" placeholder="{ &quot;Content-Type&quot;: &quot;application/json&quot; }"></textarea>
+                  <!-- 3. DYNAMIC CODE / POD BLOCK -->
+                  <div id="conn-block-code" class="hidden">
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label>Runtime de Ejecución</label>
+                        <select id="conn-code-runtime" class="input-field">
+                          <option value="javascript">JavaScript (V8 / Node.js Sandbox)</option>
+                          <option value="python3">Python 3.11 (Micro-VM Runtime)</option>
+                          <option value="bash">Bash / Shell Script</option>
+                          <option value="wasm">WASM Edge Sandbox</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label>Timeout Máximo (Segundos)</label>
+                        <input type="number" id="conn-code-timeout" class="input-field" value="30" min="1" max="300">
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Función / Script Transformador</label>
+                      <textarea id="conn-code-script" class="input-field code-textarea" rows="4" placeholder="// Recibe ($) como contexto de entrada y retorna el resultado modificado&#10;return {&#10;  ...$,&#10;  processed: true,&#10;  timestamp: Date.now()&#10;};"></textarea>
+                    </div>
                   </div>
 
                   <div class="form-group">
@@ -1222,51 +1312,141 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Tipo de Conector</label>
-              <select id="edit-conn-type" class="input-field" onchange="onConnectorTypeChange('edit-conn-type', 'edit-conn-auth-row', 'edit-conn-headers-group')">
-                <option value="http">HTTP (Universal REST / GraphQL / Webhook)</option>
-                <option value="code">Code / Pod (Micro-Transformador en JS / Python / Bash)</option>
-                <option value="storage">Storage (Blob / Object Storage - S3, Rolla, Buckets, Vault)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Método HTTP por Defecto</label>
-              <select id="edit-conn-method" class="input-field">
-                <option value="POST">POST</option>
-                <option value="GET">GET</option>
-                <option value="PUT">PUT</option>
-                <option value="DELETE">DELETE</option>
-              </select>
-            </div>
-          </div>
-
           <div class="form-group">
-            <label>Base URL / Endpoint del Servicio</label>
-            <input type="text" id="edit-conn-url" class="input-field" required>
+            <label>Tipo de Conector</label>
+            <select id="edit-conn-type" class="input-field" onchange="onConnectorTypeChange('edit-conn-type', 'edit-conn-block-http', 'edit-conn-block-storage', 'edit-conn-block-code')">
+              <option value="http">HTTP (Universal REST / GraphQL / Webhook)</option>
+              <option value="storage">Storage (Blob / Object Storage - S3, Rolla, Buckets, Vault)</option>
+              <option value="code">Code / Pod (Micro-Transformador en JS / Python / Bash)</option>
+            </select>
           </div>
 
-          <div class="form-row" id="edit-conn-auth-row">
+          <!-- 1. DYNAMIC HTTP BLOCK -->
+          <div id="edit-conn-block-http">
+            <div class="form-row">
+              <div class="form-group" style="flex: 2;">
+                <label>Base URL / Endpoint del Servicio</label>
+                <input type="text" id="edit-conn-url" class="input-field">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label>Método HTTP por Defecto</label>
+                <select id="edit-conn-method" class="input-field">
+                  <option value="POST">POST</option>
+                  <option value="GET">GET</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="PATCH">PATCH</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Tipo de Autenticación</label>
+                <select id="edit-conn-auth-type" class="input-field">
+                  <option value="none">Sin Autenticación (Pública)</option>
+                  <option value="bearer">Bearer Token (Header Authorization)</option>
+                  <option value="api_key">API Key (Header X-API-Key)</option>
+                  <option value="github_pat">GitHub PAT (Token Actual de Sesión)</option>
+                  <option value="custom_header">Cabecera de Auth Personalizada</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Token / Clave Secreta (Opcional)</label>
+                <input type="password" id="edit-conn-auth-value" class="input-field">
+              </div>
+            </div>
+
             <div class="form-group">
-              <label>Tipo de Autenticación</label>
-              <select id="edit-conn-auth-type" class="input-field">
-                <option value="none">Sin Autenticación (Pública)</option>
-                <option value="bearer">Bearer Token (Header Authorization)</option>
-                <option value="api_key">API Key (Header X-API-Key)</option>
-                <option value="github_pat">GitHub PAT (Token Actual de Sesión)</option>
-                <option value="custom_header">Cabecera de Auth Personalizada</option>
+              <label>Cabeceras Personalizadas (JSON Opcional)</label>
+              <textarea id="edit-conn-headers" class="input-field code-textarea" rows="2"></textarea>
+            </div>
+          </div>
+
+          <!-- 2. DYNAMIC STORAGE BLOCK -->
+          <div id="edit-conn-block-storage" class="hidden">
+            <div class="form-group">
+              <label>Proveedor de Almacenamiento</label>
+              <select id="edit-conn-storage-provider" class="input-field" onchange="onStorageProviderChange('edit-conn-storage-provider', 'edit-conn-storage-rolla', 'edit-conn-storage-s3', 'edit-conn-storage-vault')">
+                <option value="rolla_ball">Rolla-Ball Storage (Terra Ecosystem)</option>
+                <option value="s3">AWS S3 / Cloudflare R2 / MinIO Bucket</option>
+                <option value="github_vault">GitHub Vault Storage (.mockhive-storage)</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>Token / Clave Secreta (Opcional)</label>
-              <input type="password" id="edit-conn-auth-value" class="input-field">
+
+            <!-- Rolla Sub-fields -->
+            <div id="edit-conn-storage-rolla">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Rolla Ball ID</label>
+                  <input type="text" id="edit-conn-rolla-ball-id" class="input-field" placeholder="ej. ball_orders_2026">
+                </div>
+                <div class="form-group">
+                  <label>Owner / Namespace (Opcional)</label>
+                  <input type="text" id="edit-conn-rolla-owner" class="input-field">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Rolla Auth Token (Opcional)</label>
+                <input type="password" id="edit-conn-rolla-token" class="input-field">
+              </div>
+            </div>
+
+            <!-- S3 Sub-fields -->
+            <div id="edit-conn-storage-s3" class="hidden">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Bucket Name S3</label>
+                  <input type="text" id="edit-conn-s3-bucket" class="input-field">
+                </div>
+                <div class="form-group">
+                  <label>Endpoint / Región S3</label>
+                  <input type="text" id="edit-conn-s3-endpoint" class="input-field">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>AWS Access Key ID</label>
+                  <input type="password" id="edit-conn-s3-access-key" class="input-field">
+                </div>
+                <div class="form-group">
+                  <label>AWS Secret Access Key</label>
+                  <input type="password" id="edit-conn-s3-secret-key" class="input-field">
+                </div>
+              </div>
+            </div>
+
+            <!-- Vault Sub-fields -->
+            <div id="edit-conn-storage-vault" class="hidden">
+              <div class="form-group">
+                <label>Ruta dentro del Vault</label>
+                <input type="text" id="edit-conn-vault-repo" class="input-field">
+              </div>
             </div>
           </div>
 
-          <div class="form-group" id="edit-conn-headers-group">
-            <label>Cabeceras Personalizadas (JSON Opcional)</label>
-            <textarea id="edit-conn-headers" class="input-field code-textarea" rows="2"></textarea>
+          <!-- 3. DYNAMIC CODE / POD BLOCK -->
+          <div id="edit-conn-block-code" class="hidden">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Runtime de Ejecución</label>
+                <select id="edit-conn-code-runtime" class="input-field">
+                  <option value="javascript">JavaScript (V8 / Node.js Sandbox)</option>
+                  <option value="python3">Python 3.11 (Micro-VM Runtime)</option>
+                  <option value="bash">Bash / Shell Script</option>
+                  <option value="wasm">WASM Edge Sandbox</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Timeout Máximo (Segundos)</label>
+                <input type="number" id="edit-conn-code-timeout" class="input-field" min="1" max="300">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Función / Script Transformador</label>
+              <textarea id="edit-conn-code-script" class="input-field code-textarea" rows="4"></textarea>
+            </div>
           </div>
 
           <div class="form-group">
@@ -1280,6 +1460,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.1.4"></script>
+  <script src="app.js?v=1.1.5"></script>
 </body>
 </html>
