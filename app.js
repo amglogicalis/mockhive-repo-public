@@ -1493,6 +1493,43 @@ async function triggerWaggleExecution() {
   }
 }
 
+// ─── JSONPATH HELPERS ──────────────────────────────────────────────────────
+
+function resolveJsonPath(obj, path) {
+  if (!path || !obj) return obj;
+  const clean = path.replace(/^\$\.?/, '');
+  if (!clean) return obj;
+  const parts = clean.split('.');
+  let cur = obj;
+  for (const p of parts) {
+    if (cur === null || cur === undefined) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+function resolvePayloadPaths(payload, contextData) {
+  if (!payload) return payload;
+  if (typeof payload === 'string') {
+    if (payload.startsWith('$.')) {
+      const val = resolveJsonPath(contextData, payload);
+      return val !== undefined ? val : payload;
+    }
+    return payload;
+  }
+  if (Array.isArray(payload)) {
+    return payload.map(item => resolvePayloadPaths(item, contextData));
+  }
+  if (typeof payload === 'object') {
+    const resolved = {};
+    for (const [k, v] of Object.entries(payload)) {
+      resolved[k] = resolvePayloadPaths(v, contextData);
+    }
+    return resolved;
+  }
+  return payload;
+}
+
 // REAL ASL & UNIVERSAL WAGGLE INTERPRETER
 async function executeWaggleDAG(waggle, initialInput) {
   const def = waggle.definition;
@@ -1535,11 +1572,8 @@ async function executeWaggleDAG(waggle, initialInput) {
           headers['Authorization'] = `token ${githubPAT}`;
         }
 
-        let bodyPayload = state.Body || state.Parameters || contextData;
-        if (typeof bodyPayload === 'string' && bodyPayload.startsWith('$.')) {
-          const key = bodyPayload.slice(2);
-          bodyPayload = contextData[key] !== undefined ? contextData[key] : contextData;
-        }
+        let rawBody = state.Body !== undefined ? state.Body : (state.Parameters !== undefined ? state.Parameters : contextData);
+        let bodyPayload = resolvePayloadPaths(rawBody, contextData);
 
         try {
           const fetchOpts = { method, headers };
@@ -1610,17 +1644,16 @@ async function executeWaggleDAG(waggle, initialInput) {
       let nextSelected = state.Default;
       if (Array.isArray(state.Choices)) {
         for (const choice of state.Choices) {
-          const varName = choice.Variable ? choice.Variable.replace(/^\$\./, '') : null;
-          const val = varName ? contextData[varName] : undefined;
+          const val = choice.Variable ? resolveJsonPath(contextData, choice.Variable) : undefined;
           const op = choice.Operator || 'equals';
           const target = choice.Value;
 
           let match = false;
           if (op === 'equals' || op === 'StringEquals' || op === 'NumericEquals') match = val === target;
-          else if (op === 'gt' || op === 'NumericGreaterThan') match = val > target;
-          else if (op === 'gte' || op === 'NumericGreaterThanEquals') match = val >= target;
-          else if (op === 'lt' || op === 'NumericLessThan') match = val < target;
-          else if (op === 'lte' || op === 'NumericLessThanEquals') match = val <= target;
+          else if (op === 'gt' || op === 'NumericGreaterThan') match = Number(val) > Number(target);
+          else if (op === 'gte' || op === 'NumericGreaterThanEquals') match = Number(val) >= Number(target);
+          else if (op === 'lt' || op === 'NumericLessThan') match = Number(val) < Number(target);
+          else if (op === 'lte' || op === 'NumericLessThanEquals') match = Number(val) <= Number(target);
           else if (op === 'contains') match = String(val).includes(String(target));
           else if (op === 'isNotNull') match = val !== null && val !== undefined;
 
