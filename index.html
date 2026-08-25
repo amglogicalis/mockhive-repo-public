@@ -408,9 +408,28 @@
 
                 <!-- Rolla-Ball Sub-Config -->
                 <div id="storage-rolla-config" class="sub-form-box hidden">
-                  <div class="form-group">
-                    <label>ID de la Rolla-Ball</label>
-                    <input type="text" id="rolla-ball-id" class="input-field" placeholder="ej. ball_my_dev_storage">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>ID / Nombre de la Rolla-Ball</label>
+                      <input type="text" id="rolla-ball-id" class="input-field" placeholder="ej. ball_my_dev_storage">
+                    </div>
+                    <div class="form-group">
+                      <label>Propietario de la Ball (Opcional)</label>
+                      <input type="text" id="rolla-owner" class="input-field" placeholder="Por defecto usuario actual">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>GitHub PAT de Rolla (Opcional)</label>
+                      <input type="password" id="rolla-token" class="input-field" placeholder="ghp_... (si pertenece a otra cuenta)">
+                    </div>
+                    <div class="form-group">
+                      <label>Modo de Sincronización</label>
+                      <select id="rolla-sync-mode" class="input-field">
+                        <option value="periodic_60s">Sincronización en caliente (cada 60s)</option>
+                        <option value="on_shutdown">Snapshot solo al apagar</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -419,11 +438,31 @@
                   <div class="form-row">
                     <div class="form-group">
                       <label>S3 Endpoint</label>
-                      <input type="text" id="s3-endpoint" class="input-field" placeholder="https://s3.amazonaws.com">
+                      <input type="text" id="s3-endpoint" class="input-field" placeholder="https://s3.amazonaws.com o Cloudflare R2">
                     </div>
                     <div class="form-group">
-                      <label>Bucket</label>
+                      <label>Bucket Name</label>
                       <input type="text" id="s3-bucket" class="input-field" placeholder="my-mockhive-bucket">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Access Key ID (AWS_ACCESS_KEY_ID)</label>
+                      <input type="text" id="s3-access-key" class="input-field" placeholder="AKIA... o R2 Access Key">
+                    </div>
+                    <div class="form-group">
+                      <label>Secret Access Key (AWS_SECRET_ACCESS_KEY)</label>
+                      <input type="password" id="s3-secret-key" class="input-field" placeholder="Secret Key para firmar peticiones">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Región S3 (Opcional)</label>
+                      <input type="text" id="s3-region" class="input-field" placeholder="ej. us-east-1, eu-west-1, auto">
+                    </div>
+                    <div class="form-group">
+                      <label>Prefijo / Subcarpeta (Opcional)</label>
+                      <input type="text" id="s3-prefix" class="input-field" placeholder="ej. nodes/data/">
                     </div>
                   </div>
                 </div>
@@ -899,9 +938,28 @@
 
           <!-- Edit Rolla-Ball Sub-Config -->
           <div id="edit-storage-rolla-config" class="sub-form-box hidden">
-            <div class="form-group">
-              <label>ID de la Rolla-Ball</label>
-              <input type="text" id="edit-rolla-ball-id" class="input-field" placeholder="ej. ball_my_dev_storage">
+            <div class="form-row">
+              <div class="form-group">
+                <label>ID / Nombre de la Rolla-Ball</label>
+                <input type="text" id="edit-rolla-ball-id" class="input-field" placeholder="ej. ball_my_dev_storage">
+              </div>
+              <div class="form-group">
+                <label>Propietario de la Ball (Opcional)</label>
+                <input type="text" id="edit-rolla-owner" class="input-field" placeholder="Por defecto usuario actual">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>GitHub PAT de Rolla (Opcional)</label>
+                <input type="password" id="edit-rolla-token" class="input-field" placeholder="ghp_... (si pertenece a otra cuenta)">
+              </div>
+              <div class="form-group">
+                <label>Modo de Sincronización</label>
+                <select id="edit-rolla-sync-mode" class="input-field">
+                  <option value="periodic_60s">Sincronización en caliente (cada 60s)</option>
+                  <option value="on_shutdown">Snapshot solo al apagar</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -910,11 +968,31 @@
             <div class="form-row">
               <div class="form-group">
                 <label>S3 Endpoint</label>
-                <input type="text" id="edit-s3-endpoint" class="input-field" placeholder="https://s3.amazonaws.com">
+                <input type="text" id="edit-s3-endpoint" class="input-field" placeholder="https://s3.amazonaws.com o Cloudflare R2">
               </div>
               <div class="form-group">
-                <label>Bucket</label>
+                <label>Bucket Name</label>
                 <input type="text" id="edit-s3-bucket" class="input-field" placeholder="my-mockhive-bucket">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Access Key ID (AWS_ACCESS_KEY_ID)</label>
+                <input type="text" id="edit-s3-access-key" class="input-field" placeholder="AKIA... o R2 Access Key">
+              </div>
+              <div class="form-group">
+                <label>Secret Access Key (AWS_SECRET_ACCESS_KEY)</label>
+                <input type="password" id="edit-s3-secret-key" class="input-field" placeholder="Secret Key para firmar peticiones">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Región S3 (Opcional)</label>
+                <input type="text" id="edit-s3-region" class="input-field" placeholder="ej. us-east-1, eu-west-1, auto">
+              </div>
+              <div class="form-group">
+                <label>Prefijo / Subcarpeta (Opcional)</label>
+                <input type="text" id="edit-s3-prefix" class="input-field" placeholder="ej. nodes/data/">
               </div>
             </div>
           </div>
@@ -939,6 +1017,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.0.7"></script>
+  <script src="app.js?v=1.0.8"></script>
 </body>
 </html>

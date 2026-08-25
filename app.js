@@ -543,6 +543,12 @@ function renderNodesList() {
     const isRunning = n.status === 'running';
     const isProvisioning = n.status === 'provisioning';
 
+    let storageDesc = n.storage?.type || 'vault_persistent';
+    if (n.storage?.type === 'vault_persistent') storageDesc = '📦 Vault (.tar.zst)';
+    else if (n.storage?.type === 'rolla_ball') storageDesc = `🎱 Rolla: ${n.storage.rollaBallId || 'default'}${n.storage.rollaOwner ? ' (@' + n.storage.rollaOwner + ')' : ''}`;
+    else if (n.storage?.type === 's3_custom') storageDesc = `☁️ S3: s3://${n.storage.s3Bucket || 'bucket'}${n.storage.s3Prefix ? '/' + n.storage.s3Prefix : ''}`;
+    else if (n.storage?.type === 'ephemeral') storageDesc = '⚡ Efímero';
+
     html += `
       <div class="node-card">
         <div class="node-header">
@@ -554,7 +560,7 @@ function renderNodesList() {
         </div>
         <div class="node-details">
           <div><strong>Ciclo:</strong> ${n.lifecycleMode === 'lazarus_24_7' ? '24/7 Lazarus Relay' : n.ttlMinutes ? `TTL (${n.ttlMinutes}m)` : 'Inactividad (Sin TTL fijo)'}</div>
-          <div><strong>Storage:</strong> ${n.storage.type}</div>
+          <div><strong>Storage:</strong> ${storageDesc}</div>
           <div><strong>Tunnel:</strong> ${n.tunnelProvider}</div>
         </div>
         ${(isRunning && n.sshCommand) ? `
@@ -604,8 +610,17 @@ function handleCreateNode(e) {
 
   const storageType = document.getElementById('node-storage-type').value;
   const rollaBallId = document.getElementById('rolla-ball-id')?.value || '';
+  const rollaOwner = document.getElementById('rolla-owner')?.value || '';
+  const rollaToken = document.getElementById('rolla-token')?.value || '';
+  const rollaSyncMode = document.getElementById('rolla-sync-mode')?.value || 'periodic_60s';
+
   const s3Endpoint = document.getElementById('s3-endpoint')?.value || '';
   const s3Bucket = document.getElementById('s3-bucket')?.value || '';
+  const s3AccessKey = document.getElementById('s3-access-key')?.value || '';
+  const s3SecretKey = document.getElementById('s3-secret-key')?.value || '';
+  const s3Region = document.getElementById('s3-region')?.value || '';
+  const s3Prefix = document.getElementById('s3-prefix')?.value || '';
+
   const tunnelProvider = document.getElementById('node-tunnel').value;
   const initScript = document.getElementById('node-init-script')?.value || '';
 
@@ -619,8 +634,15 @@ function handleCreateNode(e) {
     storage: { 
       type: storageType, 
       rollaBallId: storageType === 'rolla_ball' ? rollaBallId : undefined,
+      rollaOwner: (storageType === 'rolla_ball' && rollaOwner) ? rollaOwner : undefined,
+      rollaToken: (storageType === 'rolla_ball' && rollaToken) ? rollaToken : undefined,
+      rollaSyncMode: storageType === 'rolla_ball' ? rollaSyncMode : undefined,
       s3Endpoint: storageType === 's3_custom' ? s3Endpoint : undefined,
       s3Bucket: storageType === 's3_custom' ? s3Bucket : undefined,
+      s3AccessKey: (storageType === 's3_custom' && s3AccessKey) ? s3AccessKey : undefined,
+      s3SecretKey: (storageType === 's3_custom' && s3SecretKey) ? s3SecretKey : undefined,
+      s3Region: (storageType === 's3_custom' && s3Region) ? s3Region : undefined,
+      s3Prefix: (storageType === 's3_custom' && s3Prefix) ? s3Prefix : undefined,
       mountPath: '/mockhive/data' 
     },
     tunnelProvider,
@@ -1160,8 +1182,16 @@ function openEditModal(nodeId) {
   const storageType = node.storage?.type || 'vault_persistent';
   document.getElementById('edit-node-storage-type').value = storageType;
   document.getElementById('edit-rolla-ball-id').value = node.storage?.rollaBallId || '';
+  document.getElementById('edit-rolla-owner').value = node.storage?.rollaOwner || '';
+  document.getElementById('edit-rolla-token').value = node.storage?.rollaToken || '';
+  document.getElementById('edit-rolla-sync-mode').value = node.storage?.rollaSyncMode || 'periodic_60s';
+
   document.getElementById('edit-s3-endpoint').value = node.storage?.s3Endpoint || '';
   document.getElementById('edit-s3-bucket').value = node.storage?.s3Bucket || '';
+  document.getElementById('edit-s3-access-key').value = node.storage?.s3AccessKey || '';
+  document.getElementById('edit-s3-secret-key').value = node.storage?.s3SecretKey || '';
+  document.getElementById('edit-s3-region').value = node.storage?.s3Region || '';
+  document.getElementById('edit-s3-prefix').value = node.storage?.s3Prefix || '';
 
   document.getElementById('edit-node-tunnel').value = node.tunnelProvider || 'tmate';
   document.getElementById('edit-node-init-script').value = node.initScript || '';
@@ -1198,11 +1228,30 @@ function handleSaveNodeEdit(e) {
     node.inactivityMinutes = node.lifecycleMode === 'lazarus_24_7' ? null : (rawInactivity ? parseInt(rawInactivity, 10) : 15);
     
     const storageType = document.getElementById('edit-node-storage-type').value;
+    const rollaBallId = document.getElementById('edit-rolla-ball-id')?.value || '';
+    const rollaOwner = document.getElementById('edit-rolla-owner')?.value || '';
+    const rollaToken = document.getElementById('edit-rolla-token')?.value || '';
+    const rollaSyncMode = document.getElementById('edit-rolla-sync-mode')?.value || 'periodic_60s';
+
+    const s3Endpoint = document.getElementById('edit-s3-endpoint')?.value || '';
+    const s3Bucket = document.getElementById('edit-s3-bucket')?.value || '';
+    const s3AccessKey = document.getElementById('edit-s3-access-key')?.value || '';
+    const s3SecretKey = document.getElementById('edit-s3-secret-key')?.value || '';
+    const s3Region = document.getElementById('edit-s3-region')?.value || '';
+    const s3Prefix = document.getElementById('edit-s3-prefix')?.value || '';
+
     node.storage = {
       type: storageType,
-      rollaBallId: storageType === 'rolla_ball' ? document.getElementById('edit-rolla-ball-id').value : undefined,
-      s3Endpoint: storageType === 's3_custom' ? document.getElementById('edit-s3-endpoint').value : undefined,
-      s3Bucket: storageType === 's3_custom' ? document.getElementById('edit-s3-bucket').value : undefined,
+      rollaBallId: storageType === 'rolla_ball' ? rollaBallId : undefined,
+      rollaOwner: (storageType === 'rolla_ball' && rollaOwner) ? rollaOwner : undefined,
+      rollaToken: (storageType === 'rolla_ball' && rollaToken) ? rollaToken : undefined,
+      rollaSyncMode: storageType === 'rolla_ball' ? rollaSyncMode : undefined,
+      s3Endpoint: storageType === 's3_custom' ? s3Endpoint : undefined,
+      s3Bucket: storageType === 's3_custom' ? s3Bucket : undefined,
+      s3AccessKey: (storageType === 's3_custom' && s3AccessKey) ? s3AccessKey : undefined,
+      s3SecretKey: (storageType === 's3_custom' && s3SecretKey) ? s3SecretKey : undefined,
+      s3Region: (storageType === 's3_custom' && s3Region) ? s3Region : undefined,
+      s3Prefix: (storageType === 's3_custom' && s3Prefix) ? s3Prefix : undefined,
       mountPath: '/mockhive/data'
     };
 
