@@ -259,20 +259,7 @@ function loadDefaultDeployedResources() {
     }
   ];
 
-  wagglesList = [
-    {
-      waggleId: 'waggle_etl_pipeline',
-      name: 'Order-And-Fraud-Processing-Pipeline',
-      startAt: 'ValidatePayload',
-      status: 'ready'
-    },
-    {
-      waggleId: 'waggle_ai_workflow',
-      name: 'Image-Vector-Embedding-DAG',
-      startAt: 'DownloadAssets',
-      status: 'ready'
-    }
-  ];
+  wagglesList = [];
 
   podsList = [
     {
