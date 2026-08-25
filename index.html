@@ -519,31 +519,7 @@
 
                 <div class="form-group">
                   <label>Definición de Estados (JSON / YAML)</label>
-                  <textarea id="waggle-states-json" class="input-field code-textarea" rows="12">{
-  "StartAt": "ExtractPayload",
-  "States": {
-    "ExtractPayload": {
-      "Type": "Task",
-      "Comment": "Lee y parsea datos entrantes",
-      "Next": "EvaluateQuality"
-    },
-    "EvaluateQuality": {
-      "Type": "Choice",
-      "Choices": [
-        { "Variable": "score", "Operator": "gt", "Value": 80, "Next": "PublishResult" }
-      ],
-      "Default": "HumanReviewCheckpoint"
-    },
-    "HumanReviewCheckpoint": {
-      "Type": "WaitForCallback",
-      "Comment": "Pausa requerida para aprobación de supervisor",
-      "Next": "PublishResult"
-    },
-    "PublishResult": {
-      "Type": "Succeed"
-    }
-  }
-}</textarea>
+                  <textarea id="waggle-states-json" class="input-field code-textarea" rows="12" placeholder="{\n  &quot;StartAt&quot;: &quot;InitialTask&quot;,\n  &quot;States&quot;: {\n    &quot;InitialTask&quot;: {\n      &quot;Type&quot;: &quot;Task&quot;,\n      &quot;Next&quot;: &quot;SucceedState&quot;\n    },\n    &quot;SucceedState&quot;: {\n      &quot;Type&quot;: &quot;Succeed&quot;\n    }\n  }\n}"></textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">⚡ Crear State Machine</button>
@@ -1017,6 +993,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.0.9"></script>
+  <script src="app.js?v=1.1.0"></script>
 </body>
 </html>

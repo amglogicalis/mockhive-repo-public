@@ -963,18 +963,33 @@ function handleCreateWaggle(e) {
   if (!currentUser) { showAuthGate(); return; }
 
   const name = document.getElementById('waggle-name').value;
+  const rawDef = document.getElementById('waggle-states-json').value.trim();
+  let definition = {};
+  let startAt = 'InitialState';
+
+  if (rawDef) {
+    try {
+      definition = JSON.parse(rawDef);
+      if (definition.StartAt) startAt = definition.StartAt;
+    } catch (err) {
+      showToast('Error al parsear el JSON de Estados: sintaxis inválida');
+      return;
+    }
+  }
+
   const newWaggle = {
     waggleId: 'waggle_' + Math.random().toString(36).slice(2, 8),
     name,
-    startAt: 'ExtractPayload',
+    startAt,
+    definition,
     status: 'ready',
     createdAt: new Date().toISOString()
   };
   wagglesList.push(newWaggle);
   persistToGitHub();
   renderAll();
-  showToast(`State Machine '${name}' compilada`);
-  logTelemetry(`[Waggle Created] State Machine ${name} compiled`);
+  showToast(`State Machine '${name}' compilada con éxito`);
+  logTelemetry(`[Waggle Created] State Machine ${name} compiled (Start: ${startAt})`);
 }
 
 function renderWagglesList() {
