@@ -503,39 +503,161 @@
 
       <!-- TAB: WAGGLES -->
       <section id="tab-waggles" class="tab-pane">
-        <div class="split-view">
-          <!-- Left: State Machine Designer -->
-          <div class="card">
-            <div class="card-header">
-              <h3>🐝 Diseñador de Step Functions (Waggles)</h3>
-              <span class="badge-tag">State Machine DAG</span>
+        <div class="sub-nav-tabs">
+          <button class="sub-nav-btn active" id="btn-subtab-waggles" onclick="switchWaggleSubTab('waggles')">🐝 State Machines</button>
+          <button class="sub-nav-btn" id="btn-subtab-connectors" onclick="switchWaggleSubTab('connectors')">🔌 Mis Conectores</button>
+        </div>
+
+        <!-- SUB-PANE 1: STATE MACHINES -->
+        <div id="subpane-waggles" class="sub-pane active">
+          <div class="split-view">
+            <!-- Left: State Machine Designer -->
+            <div class="card">
+              <div class="card-header">
+                <h3>🐝 Diseñador de Step Functions (Waggles)</h3>
+                <span class="badge-tag">State Machine DAG</span>
+              </div>
+              <div class="card-body">
+                <form id="form-create-waggle" onsubmit="handleCreateWaggle(event)">
+                  <div class="form-group">
+                    <label>Nombre de la State Machine</label>
+                    <input type="text" id="waggle-name" class="input-field" placeholder="ej. Order-Processing-Pipeline" required>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Target de Ejecución</label>
+                      <select id="waggle-target" class="input-field">
+                        <option value="client_browser">Navegador (Live Instant DAG)</option>
+                        <option value="cloud_runner">Cloud Runner (GitHub Actions Async)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Timeout (Segundos)</label>
+                      <input type="number" id="waggle-timeout" class="input-field" value="60" min="5" max="3600">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Payload Inicial de Prueba (JSON Opcional)</label>
+                    <textarea id="waggle-initial-input" class="input-field code-textarea" rows="3" placeholder="{&#10;  &quot;orderId&quot;: 1042,&#10;  &quot;amount&quot;: 150&#10;}"></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Definición de Estados (JSON / YAML)</label>
+                    <textarea id="waggle-states-json" class="input-field code-textarea" rows="10" placeholder="{&#10;  &quot;StartAt&quot;: &quot;InitialTask&quot;,&#10;  &quot;States&quot;: {&#10;    &quot;InitialTask&quot;: {&#10;      &quot;Type&quot;: &quot;Task&quot;,&#10;      &quot;Next&quot;: &quot;Done&quot;&#10;    },&#10;    &quot;Done&quot;: {&#10;      &quot;Type&quot;: &quot;Succeed&quot;&#10;    }&#10;  }&#10;}"></textarea>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-block">⚡ Compilar y Guardar State Machine</button>
+                </form>
+              </div>
             </div>
-            <div class="card-body">
-              <form id="form-create-waggle" onsubmit="handleCreateWaggle(event)">
-                <div class="form-group">
-                  <label>Nombre de la State Machine</label>
-                  <input type="text" id="waggle-name" class="input-field" placeholder="ej. Order-Processing-Pipeline" required>
-                </div>
 
-                <div class="form-group">
-                  <label>Definición de Estados (JSON / YAML)</label>
-                  <textarea id="waggle-states-json" class="input-field code-textarea" rows="12" placeholder="{&#10;  &quot;StartAt&quot;: &quot;InitialTask&quot;,&#10;  &quot;States&quot;: {&#10;    &quot;InitialTask&quot;: {&#10;      &quot;Type&quot;: &quot;Task&quot;,&#10;      &quot;Next&quot;: &quot;Done&quot;&#10;    },&#10;    &quot;Done&quot;: {&#10;      &quot;Type&quot;: &quot;Succeed&quot;&#10;    }&#10;  }&#10;}"></textarea>
+            <!-- Right: Executions & DAG Tracker -->
+            <div class="card">
+              <div class="card-header">
+                <h3>📋 Inventario de State Machines</h3>
+                <button class="btn-sm btn-secondary" onclick="renderWagglesList()">Refrescar</button>
+              </div>
+              <div class="card-body">
+                <div id="waggles-executions-list">
+                  <!-- Injected via JS -->
                 </div>
-
-                <button type="submit" class="btn btn-primary btn-block">⚡ Crear State Machine</button>
-              </form>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- Right: Executions & DAG Tracker -->
-          <div class="card">
-            <div class="card-header">
-              <h3>⚡ Ejecuciones y Aprobaciones en Vivo</h3>
-              <button class="btn-sm btn-secondary" onclick="renderWagglesList()">Refrescar</button>
+        <!-- SUB-PANE 2: CUSTOM CONNECTORS -->
+        <div id="subpane-connectors" class="sub-pane">
+          <div class="split-view">
+            <!-- Left: Connector Creator -->
+            <div class="card">
+              <div class="card-header">
+                <h3>🔌 Registrar Nuevo Conector Personalizado</h3>
+                <span class="badge-tag">Reusable Driver</span>
+              </div>
+              <div class="card-body">
+                <form id="form-create-connector" onsubmit="handleCreateConnector(event)">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>ID / Alias Único del Conector</label>
+                      <input type="text" id="conn-id" class="input-field" placeholder="ej. mantx-ai, s3-analytics, orders-api" required>
+                      <small class="field-hint">Se usa en el JSON como <code>"Connector": "alias"</code></small>
+                    </div>
+                    <div class="form-group">
+                      <label>Nombre Descriptivo</label>
+                      <input type="text" id="conn-name" class="input-field" placeholder="ej. Mantx AI Refiner" required>
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Tipo de Conector</label>
+                      <select id="conn-type" class="input-field" onchange="onConnectorTypeChange('conn-type', 'conn-auth-row', 'conn-headers-group')">
+                        <option value="http">HTTP REST API / Webhook</option>
+                        <option value="storage">Object Storage (S3 / Rolla / Vault)</option>
+                        <option value="pod">PollenPod (Micro-VM Function)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Método HTTP por Defecto</label>
+                      <select id="conn-method" class="input-field">
+                        <option value="POST">POST</option>
+                        <option value="GET">GET</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Base URL / Endpoint del Servicio</label>
+                    <input type="text" id="conn-url" class="input-field" placeholder="https://api.mantx.terra.dev o https://httpbin.org/post" required>
+                  </div>
+
+                  <div class="form-row" id="conn-auth-row">
+                    <div class="form-group">
+                      <label>Tipo de Autenticación</label>
+                      <select id="conn-auth-type" class="input-field">
+                        <option value="none">Sin Autenticación (Pública)</option>
+                        <option value="bearer">Bearer Token (Header Authorization)</option>
+                        <option value="api_key">API Key (Header X-API-Key)</option>
+                        <option value="github_pat">GitHub PAT (Token Actual de Sesión)</option>
+                        <option value="custom_header">Cabecera de Auth Personalizada</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Token / Clave Secreta</label>
+                      <input type="password" id="conn-auth-value" class="input-field" placeholder="token_secreto_o_key...">
+                    </div>
+                  </div>
+
+                  <div class="form-group" id="conn-headers-group">
+                    <label>Cabeceras Personalizadas (JSON Opcional)</label>
+                    <textarea id="conn-headers" class="input-field code-textarea" rows="2" placeholder="{ &quot;Content-Type&quot;: &quot;application/json&quot; }"></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Descripción / Notas (Opcional)</label>
+                    <input type="text" id="conn-desc" class="input-field" placeholder="ej. Refinador neuronal de datos con Nymphy">
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-block">🔌 Guardar Conector Personalizado</button>
+                </form>
+              </div>
             </div>
-            <div class="card-body">
-              <div id="waggles-executions-list">
-                <!-- Injected via JS -->
+
+            <!-- Right: Connectors Inventory -->
+            <div class="card">
+              <div class="card-header">
+                <h3>📋 Mis Conectores Registrados</h3>
+                <button class="btn-sm btn-secondary" onclick="renderConnectorsList()">Refrescar</button>
+              </div>
+              <div class="card-body">
+                <div id="connectors-inventory-list">
+                  <!-- Injected via JS -->
+                </div>
               </div>
             </div>
           </div>
@@ -993,6 +1115,169 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.1.1"></script>
+  <!-- MODAL: RUN WAGGLE (LIVE DAG EXECUTION MONITOR) -->
+  <div id="modal-run-waggle" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-run-waggle')">
+    <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 id="run-modal-title">🚀 Ejecutando State Machine</h3>
+          <span class="badge-tag live-badge" id="run-live-status">🟡 Listo para Iniciar</span>
+        </div>
+        <button class="modal-close" onclick="closeRunWaggleModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Payload JSON de Entrada (Input Context $)</label>
+          <textarea id="run-waggle-input" class="input-field code-textarea" rows="3" placeholder="{ &quot;orderId&quot;: 1042 }"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+          <button class="btn btn-primary" id="btn-trigger-exec" onclick="triggerWaggleExecution()">▶️ Iniciar Ejecución del DAG</button>
+          <button class="btn btn-secondary" onclick="clearExecLogs()">Limpiar Traza</button>
+        </div>
+
+        <label style="font-size: 0.85rem; font-weight: 600; color: #ffffff;">Traza de Transiciones y Pasos en Tiempo Real:</label>
+        <div id="exec-timeline" class="exec-timeline-box">
+          <div style="color: var(--text-muted); font-size: 0.85rem;">Pulsa "▶️ Iniciar Ejecución" para arrancar el pipeline...</div>
+        </div>
+
+        <div id="exec-final-box" class="pod-result-box hidden">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong>Resultado Final del Pipeline:</strong>
+            <span id="exec-total-latency" class="metric-pill">0 ms</span>
+          </div>
+          <pre id="exec-final-output" class="code-pre" style="margin-top: 8px;">{}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT WAGGLE (STATE MACHINE) -->
+  <div id="modal-edit-waggle" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-edit-waggle')">
+    <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>⚙️ Editar State Machine</h3>
+        <button class="modal-close" onclick="closeEditWaggleModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-waggle" onsubmit="handleSaveWaggleEdit(event)">
+          <input type="hidden" id="edit-waggle-id">
+
+          <div class="form-group">
+            <label>Nombre de la State Machine</label>
+            <input type="text" id="edit-waggle-name" class="input-field" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Target de Ejecución</label>
+              <select id="edit-waggle-target" class="input-field">
+                <option value="client_browser">Navegador (Live Instant DAG)</option>
+                <option value="cloud_runner">Cloud Runner (GitHub Actions Async)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Timeout (Segundos)</label>
+              <input type="number" id="edit-waggle-timeout" class="input-field" min="5" max="3600">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Payload Inicial por Defecto (JSON Opcional)</label>
+            <textarea id="edit-waggle-initial-input" class="input-field code-textarea" rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Definición de Estados (JSON / YAML)</label>
+            <textarea id="edit-waggle-states-json" class="input-field code-textarea" rows="10" required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Guardar Cambios de la State Machine</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT CONNECTOR -->
+  <div id="modal-edit-connector" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-edit-connector')">
+    <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>⚙️ Editar Conector Personalizado</h3>
+        <button class="modal-close" onclick="closeEditConnectorModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-connector" onsubmit="handleSaveConnectorEdit(event)">
+          <input type="hidden" id="edit-conn-id-orig">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>ID / Alias Único del Conector</label>
+              <input type="text" id="edit-conn-id" class="input-field" required>
+            </div>
+            <div class="form-group">
+              <label>Nombre Descriptivo</label>
+              <input type="text" id="edit-conn-name" class="input-field" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo de Conector</label>
+              <select id="edit-conn-type" class="input-field" onchange="onConnectorTypeChange('edit-conn-type', 'edit-conn-auth-row', 'edit-conn-headers-group')">
+                <option value="http">HTTP REST API / Webhook</option>
+                <option value="storage">Object Storage (S3 / Rolla / Vault)</option>
+                <option value="pod">PollenPod (Micro-VM Function)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Método HTTP por Defecto</label>
+              <select id="edit-conn-method" class="input-field">
+                <option value="POST">POST</option>
+                <option value="GET">GET</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Base URL / Endpoint del Servicio</label>
+            <input type="text" id="edit-conn-url" class="input-field" required>
+          </div>
+
+          <div class="form-row" id="edit-conn-auth-row">
+            <div class="form-group">
+              <label>Tipo de Autenticación</label>
+              <select id="edit-conn-auth-type" class="input-field">
+                <option value="none">Sin Autenticación (Pública)</option>
+                <option value="bearer">Bearer Token (Header Authorization)</option>
+                <option value="api_key">API Key (Header X-API-Key)</option>
+                <option value="github_pat">GitHub PAT (Token Actual de Sesión)</option>
+                <option value="custom_header">Cabecera de Auth Personalizada</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Token / Clave Secreta</label>
+              <input type="password" id="edit-conn-auth-value" class="input-field">
+            </div>
+          </div>
+
+          <div class="form-group" id="edit-conn-headers-group">
+            <label>Cabeceras Personalizadas (JSON Opcional)</label>
+            <textarea id="edit-conn-headers" class="input-field code-textarea" rows="2"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Descripción / Notas (Opcional)</label>
+            <input type="text" id="edit-conn-desc" class="input-field">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Guardar Cambios del Conector</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=1.1.2"></script>
 </body>
 </html>
