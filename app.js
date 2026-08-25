@@ -1574,10 +1574,90 @@ async function triggerWaggleExecution() {
   document.getElementById('exec-timeline').innerHTML = '';
   document.getElementById('exec-final-box').classList.add('hidden');
 
-  const startTime = performance.now();
+  const startTime = Date.now();
   try {
+    // 1. CLOUD RUNNER TARGET (GitHub Actions Ubuntu VM)
+    if (activeWaggleForRun.target === 'cloud_runner') {
+      if (!githubPAT || !currentUser) {
+        showAuthGate();
+        btn.disabled = false;
+        btn.innerText = '▶️ Iniciar Ejecución del DAG';
+        return;
+      }
+
+      addTimelineStep('CloudRunnerDispatch', 'DISPATCH', 'running', null, 'Despachando Workflow en GitHub Actions (Ubuntu 24.04 VM)...');
+      
+      const dispatchRes = await fetch(`https://api.github.com/repos/${currentUser.login}/.mockhive-storage/actions/workflows/waggle.yml/dispatches`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'token ' + githubPAT,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: {
+            waggle_id: activeWaggleForRun.waggleId,
+            input_payload: JSON.stringify(inputPayload)
+          }
+        })
+      });
+
+      if (!dispatchRes.ok) {
+        const errTxt = await dispatchRes.text();
+        throw new Error(`Error al despachar workflow a GitHub Actions (${dispatchRes.status}): ${errTxt}`);
+      }
+
+      addTimelineStep('RunnerProvisioning', 'PROVISIONING', 'running', null, 'Aprovisionando contenedor Ubuntu y ejecutando pasos reales...');
+
+      const statusFileUrl = `https://api.github.com/repos/${currentUser.login}/.mockhive-storage/contents/.mockhive-status/waggle_exec_${activeWaggleForRun.waggleId}.json`;
+      let completedData = null;
+
+      for (let attempt = 1; attempt <= 40; attempt++) {
+        await new Promise(r => setTimeout(r, 3500));
+        try {
+          const pollRes = await fetch(`${statusFileUrl}?t=${Date.now()}`, {
+            headers: { 'Authorization': 'token ' + githubPAT, 'Accept': 'application/vnd.github.v3+json' }
+          });
+          if (pollRes.ok) {
+            const j = await pollRes.json();
+            const parsed = JSON.parse(decodeBase64(j.content));
+            if (parsed.status === 'completed' && new Date(parsed.completedAt).getTime() >= startTime - 10000) {
+              completedData = parsed;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+
+      if (!completedData) {
+        throw new Error('Tiempo de espera agotado para el Cloud Runner de GitHub Actions.');
+      }
+
+      document.getElementById('exec-timeline').innerHTML = '';
+      for (const st of (completedData.trace || [])) {
+        addTimelineStep(st.step, st.type, st.status, st.durationMs, `Ejecutado en ${completedData.runner || 'Cloud Runner'}`);
+      }
+
+      const totalLatency = Math.round(Date.now() - startTime);
+      document.getElementById('run-live-status').innerText = '🟢 Completado (Cloud Runner)';
+      document.getElementById('run-live-status').className = 'badge-tag live-badge success';
+      document.getElementById('exec-total-latency').innerText = `${totalLatency} ms (Ubuntu VM)`;
+      document.getElementById('exec-final-output').innerText = JSON.stringify(completedData.finalContext || {}, null, 2);
+      document.getElementById('exec-final-box').classList.remove('hidden');
+
+      activeWaggleForRun.lastRunAt = new Date().toISOString();
+      persistToGitHub();
+      renderWagglesList();
+
+      showToast(`✓ Pipeline ejecutado en Cloud Runner con éxito (${totalLatency}ms)`);
+      logTelemetry(`[Waggle Cloud Success] ${activeWaggleForRun.name} executed on GitHub Actions VM in ${totalLatency}ms`);
+      return;
+    }
+
+    // 2. CLIENT BROWSER TARGET (Instant Live DAG)
     const result = await executeWaggleDAG(activeWaggleForRun, inputPayload);
-    const totalLatency = Math.round(performance.now() - startTime);
+    const totalLatency = Math.round(Date.now() - startTime);
 
     document.getElementById('run-live-status').innerText = '🟢 Completado';
     document.getElementById('run-live-status').className = 'badge-tag live-badge success';
@@ -1592,7 +1672,7 @@ async function triggerWaggleExecution() {
     showToast(`✓ Pipeline '${activeWaggleForRun.name}' finalizado con éxito (${totalLatency}ms)`);
     logTelemetry(`[Waggle Exec Success] ${activeWaggleForRun.name} completed in ${totalLatency}ms`);
   } catch (err) {
-    const totalLatency = Math.round(performance.now() - startTime);
+    const totalLatency = Math.round(Date.now() - startTime);
     document.getElementById('run-live-status').innerText = '🔴 Fallido';
     document.getElementById('run-live-status').className = 'badge-tag live-badge danger';
     addTimelineStep('Error', 'FAIL', 'failed', totalLatency, err.message);
