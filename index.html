@@ -935,10 +935,33 @@
             </article>
 
             <article id="guide-waggles" class="guide-card">
-              <h2>🐝 Waggles: Step Functions & Control Humano</h2>
+              <h2>🐝 Waggles: State Machines & Modos de Ejecución</h2>
               <p>
-                Define máquinas de estado declarativas compatibles con estados <code>Task</code>, <code>Choice</code>, <code>Parallel</code> y <code>WaitForCallback</code>. Cuando una ejecución llega a una pausa, puedes revisarla y aprobarla con 1 clic en el panel de Waggles.
+                Las <strong>Waggles</strong> son el equivalente <em>Serverless</em> a <strong>AWS Step Functions</strong> a coste $0. Permiten orquestar flujos de trabajo declarativos en formato ASL (Amazon States Language) con estados <code>Task</code>, <code>Choice</code>, <code>Pass</code>, <code>Wait</code>, <code>Succeed</code> y <code>Fail</code>.
               </p>
+
+              <h3 style="margin-top: 18px; margin-bottom: 10px; font-size: 1.1rem; color: #ffffff;">⚡ Comparativa de Modos de Ejecución:</h3>
+              <div class="practices-grid" style="margin-bottom: 16px;">
+                <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #333;">
+                  <h4 style="color: #ffffff;">🌐 Modo 1: Navegador (client_browser)</h4>
+                  <ul style="color: #bbb; font-size: 0.85rem; line-height: 1.5;">
+                    <li><strong>Arranque:</strong> Instantáneo (0 ms de espera).</li>
+                    <li><strong>Entorno:</strong> Motor JavaScript en memoria del navegador.</li>
+                    <li><strong>Capacidades:</strong> Ejecuta el DAG, evalúa ramas lógicas <code>Choice</code>, resuelve <code>$.JSONPath</code> y hace peticiones de red <code>fetch()</code> a APIs públicas o locales.</li>
+                    <li><strong>Ideal para:</strong> Desarrollo rápido, validación de lógica de flujo y prototipado sin gastar minutos de CI.</li>
+                  </ul>
+                </div>
+
+                <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #555;">
+                  <h4 style="color: #ffffff;">☁️ Modo 2: Cloud Runner (cloud_runner)</h4>
+                  <ul style="color: #bbb; font-size: 0.85rem; line-height: 1.5;">
+                    <li><strong>Arranque:</strong> ~15-25 segundos (aprovisionamiento de contenedor).</li>
+                    <li><strong>Entorno:</strong> Máquina Virtual Ubuntu 24.04 LTS real en GitHub Actions (7 GB RAM, 2 vCPU).</li>
+                    <li><strong>Capacidades:</strong> Acceso completo a terminal Linux, Node.js 20, Python 3, AWS CLI, subida a S3/R2, bases de datos y persistencia automática del resultado en tu repositorio.</li>
+                    <li><strong>Ideal para:</strong> Producción, procesamiento de datos pesados, pipelines de CI/CD reales y tareas con credenciales seguras.</li>
+                  </ul>
+                </div>
+              </div>
             </article>
 
             <article id="guide-practices" class="guide-card">
@@ -947,17 +970,63 @@
                 <div class="practice-box good">
                   <h4>✔️ Buenas Prácticas</h4>
                   <ul>
-                    <li>Monta almacenamiento persistente en <code>/mockhive/data</code> para no perder archivos.</li>
-                    <li>Utiliza Rolla-Balls para datasets grandes de más de 2GB.</li>
-                    <li>Usa PollenPods para tareas que requieran respuestas JSON rápidas en menos de 50ms.</li>
+                    <li>Monta almacenamiento persistente en <code>/mockhive/data</code> para no perder archivos en tus HiveNodes.</li>
+                    <li>Utiliza el modo <em>Navegador</em> para probar la lógica de tus Waggles antes de despacharlas a un Cloud Runner.</li>
+                    <li>Usa conectores tipo <em>Storage</em> para desacoplar las credenciales de S3 o Rolla de la lógica de tus DAGs.</li>
+                    <li>Aprovecha los estados <em>Choice</em> para crear compuertas de seguridad automáticas basadas en scores o métricas.</li>
                   </ul>
                 </div>
                 <div class="practice-box bad">
                   <h4>❌ Malas Prácticas</h4>
                   <ul>
-                    <li>No dejes corriendo múltiples servidores 24/7 sin supervisión.</li>
-                    <li>No guardes contraseñas en texto plano dentro de los init scripts; usa Secrets de GitHub.</li>
+                    <li>No dejes corriendo múltiples servidores 24/7 sin supervisión para evitar consumir tu cuota de Actions.</li>
+                    <li>No guardes contraseñas en texto plano; utiliza Secrets de GitHub o campos de Auth en tus Conectores.</li>
+                    <li>No uses bucles infinitos dentro de scripts inline sin una condición de salida garantizada.</li>
                   </ul>
+                </div>
+              </div>
+            </article>
+
+            <article id="guide-faq" class="guide-card">
+              <h2>❓ Preguntas Frecuentes (FAQ) & Resolución de Dudas</h2>
+              
+              <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 14px;">
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Las Waggles ejecutan y crean recursos de forma 100% real como AWS Step Functions?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    <strong>Sí.</strong> El motor de estados (grafo de dependencias, variables <code>$.path</code>, bifurcaciones <code>Choice</code> y reintentos) opera exactamente bajo el estándar ASL de AWS. Cuando se ejecuta en modo <strong>Cloud Runner</strong>, una máquina virtual Ubuntu real ejecuta las acciones, lanza llamadas de red TLS y puede crear o modificar recursos externos en cualquier proveedor de la nube.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Puedo subir archivos y escribir en AWS S3, Cloudflare R2 o Bases de Datos?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    <strong>Totalmente.</strong> Creas un conector de tipo <code>Storage (S3)</code> o <code>HTTP</code> con tus credenciales de acceso (Access Key ID, Secret Key o Token). El runner de GitHub Actions tiene conectividad abierta a internet y las librerías necesarias para ejecutar subidas de objetos (<code>PutObject</code>), inserciones en bases de datos o llamadas a webhooks.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Cómo cambian los parámetros según el Tipo de Conector?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    El formulario se adapta dinámicamente:
+                    <br>• <strong>HTTP:</strong> Pide Base URL, Método HTTP, Tipo de Auth (Bearer, API Key) y Cabeceras JSON.
+                    <br>• <strong>Storage:</strong> Pide Proveedor (Rolla-Ball, AWS S3 o GitHub Vault), Bucket/Ball ID y credenciales de acceso.
+                    <br>• <strong>Code / Pod:</strong> Pide Runtime (JavaScript, Python 3, Bash), Timeout y el script de transformación en código puro.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Dónde se guardan mis configuraciones y resultados?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Todo se sincroniza automáticamente en tu propio repositorio privado <code>.mockhive-storage</code> en GitHub mediante la Git Database API. No existe ningún servidor central propietario de Mockhive: la infraestructura es 100% tuya, privada y a coste $0.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Cómo paso datos entre estados consecutivos en una Waggle?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Utiliza la propiedad <code>"ResultPath": "$.nombreVariable"</code> en el estado de origen. El resultado se inyectará en el contexto global <code>$</code> y estará disponible en los siguientes estados usando referencias como <code>"$.nombreVariable.propiedad"</code>.
+                  </p>
                 </div>
               </div>
             </article>
@@ -1460,6 +1529,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.1.6"></script>
+  <script src="app.js?v=1.1.7"></script>
 </body>
 </html>
