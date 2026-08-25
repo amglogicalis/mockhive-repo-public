@@ -1224,5 +1224,5 @@ body {
 
 .connector-badge.http { background: #1e293b; color: #38bdf8; border: 1px solid #0284c7; }
 .connector-badge.storage { background: #14532d; color: #4ade80; border: 1px solid #16a34a; }
-.connector-badge.pod { background: #4c1d95; color: #c084fc; border: 1px solid #7c3aed; }
+.connector-badge.pod, .connector-badge.code { background: #4c1d95; color: #c084fc; border: 1px solid #7c3aed; }
 

@@ -992,7 +992,7 @@ function onConnectorTypeChange(typeSelectId, authRowId, headersGroupId) {
   } else if (val === 'storage') {
     if (authRow) authRow.classList.remove('hidden');
     if (headersGroup) headersGroup.classList.add('hidden');
-  } else if (val === 'pod') {
+  } else if (val === 'pod' || val === 'code') {
     if (authRow) authRow.classList.add('hidden');
     if (headersGroup) headersGroup.classList.add('hidden');
   }
@@ -1062,6 +1062,7 @@ function renderConnectorsList() {
 
   container.innerHTML = connectorsList.map(c => {
     const authDesc = c.authType === 'none' ? 'Pública (Sin Auth)' : c.authType === 'bearer' ? 'Bearer Token' : c.authType === 'api_key' ? 'API Key' : c.authType === 'github_pat' ? 'GitHub PAT' : 'Custom Header';
+    const typeLabel = c.type === 'http' ? 'HTTP' : c.type === 'code' || c.type === 'pod' ? 'CODE / POD' : 'STORAGE';
 
     return `
       <div class="node-card" style="margin-bottom: 12px;">
@@ -1070,7 +1071,7 @@ function renderConnectorsList() {
             <h4>🔌 ${c.name}</h4>
             <span class="node-id"><code>${c.connectorId}</code> • ${c.url}</span>
           </div>
-          <span class="connector-badge ${c.type}">${c.type}</span>
+          <span class="connector-badge ${c.type}">${typeLabel}</span>
         </div>
         <div class="connector-card-details">
           <div><strong>Método por Defecto:</strong> <code>${c.method || 'POST'}</code></div>

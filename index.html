@@ -595,9 +595,9 @@
                     <div class="form-group">
                       <label>Tipo de Conector</label>
                       <select id="conn-type" class="input-field" onchange="onConnectorTypeChange('conn-type', 'conn-auth-row', 'conn-headers-group')">
-                        <option value="http">HTTP REST API / Webhook</option>
-                        <option value="storage">Object Storage (S3 / Rolla / Vault)</option>
-                        <option value="pod">PollenPod (Micro-VM Function)</option>
+                        <option value="http">HTTP (Universal REST / GraphQL / Webhook)</option>
+                        <option value="code">Code / Pod (Micro-Transformador en JS / Python / Bash)</option>
+                        <option value="storage">Storage (Blob / Object Storage - S3, Rolla, Buckets, Vault)</option>
                       </select>
                     </div>
                     <div class="form-group">
@@ -628,7 +628,7 @@
                       </select>
                     </div>
                     <div class="form-group">
-                      <label>Token / Clave Secreta</label>
+                      <label>Token / Clave Secreta (Opcional)</label>
                       <input type="password" id="conn-auth-value" class="input-field" placeholder="token_secreto_o_key...">
                     </div>
                   </div>
@@ -1226,9 +1226,9 @@
             <div class="form-group">
               <label>Tipo de Conector</label>
               <select id="edit-conn-type" class="input-field" onchange="onConnectorTypeChange('edit-conn-type', 'edit-conn-auth-row', 'edit-conn-headers-group')">
-                <option value="http">HTTP REST API / Webhook</option>
-                <option value="storage">Object Storage (S3 / Rolla / Vault)</option>
-                <option value="pod">PollenPod (Micro-VM Function)</option>
+                <option value="http">HTTP (Universal REST / GraphQL / Webhook)</option>
+                <option value="code">Code / Pod (Micro-Transformador en JS / Python / Bash)</option>
+                <option value="storage">Storage (Blob / Object Storage - S3, Rolla, Buckets, Vault)</option>
               </select>
             </div>
             <div class="form-group">
@@ -1259,7 +1259,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Token / Clave Secreta</label>
+              <label>Token / Clave Secreta (Opcional)</label>
               <input type="password" id="edit-conn-auth-value" class="input-field">
             </div>
           </div>
@@ -1280,6 +1280,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.1.3"></script>
+  <script src="app.js?v=1.1.4"></script>
 </body>
 </html>
