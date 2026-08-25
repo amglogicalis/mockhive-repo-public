@@ -1119,9 +1119,11 @@
   <div id="modal-run-waggle" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-run-waggle')">
     <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <div>
-          <h3 id="run-modal-title">🚀 Ejecutando State Machine</h3>
-          <span class="badge-tag live-badge" id="run-live-status">🟡 Listo para Iniciar</span>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 id="run-modal-title" style="margin: 0;">🚀 Ejecutando State Machine</h3>
+          <div>
+            <span class="badge-tag live-badge" id="run-live-status">🟡 Listo para Iniciar</span>
+          </div>
         </div>
         <button class="modal-close" onclick="closeRunWaggleModal()">✕</button>
       </div>
