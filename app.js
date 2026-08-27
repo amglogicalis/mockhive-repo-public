@@ -16,22 +16,36 @@ let activeWaggleForRun = null;
 let activeWaggleForEdit = null;
 let activeConnectorForEdit = null;
 
-// Initialize on Load
+// Initialize on Load with Immediate Offline/Cached State
+const savedPat = localStorage.getItem('mockhive_pat') || sessionStorage.getItem('mockhive_pat') || '';
+const savedUserStr = localStorage.getItem('mockhive_user');
+
+if (savedPat) {
+  githubPAT = savedPat;
+  if (savedUserStr) {
+    try { currentUser = JSON.parse(savedUserStr); } catch(e) {}
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-  githubPAT = sessionStorage.getItem('mockhive_pat') || localStorage.getItem('mockhive_pat') || '';
   if (githubPAT) {
+    showAppLayout();
     try {
-      currentUser = await fetchGitHubUser(githubPAT);
-      showAppLayout();
+      const freshUser = await fetchGitHubUser(githubPAT);
+      currentUser = freshUser;
+      localStorage.setItem('mockhive_user', JSON.stringify(freshUser));
+      renderAuthenticatedState();
       await syncWithGitHub();
       logTelemetry('MockHive Studio connected. User @' + currentUser.login + ' loaded.');
     } catch (e) {
-      console.warn('Stored token is invalid or expired:', e.message);
-      githubPAT = '';
-      currentUser = null;
-      sessionStorage.removeItem('mockhive_pat');
-      localStorage.removeItem('mockhive_pat');
-      showAuthGate();
+      if (e.message && e.message.includes('401')) {
+        console.warn('Stored token is invalid or revoked (401):', e.message);
+        logout();
+      } else {
+        console.warn('Network issue validating token, preserving offline session:', e.message);
+        if (currentUser) renderAuthenticatedState();
+        await syncWithGitHub().catch(() => {});
+      }
     }
   } else {
     showAuthGate();
@@ -95,6 +109,7 @@ async function handleGateLogin(e) {
     currentUser = user;
     sessionStorage.setItem('mockhive_pat', pat);
     localStorage.setItem('mockhive_pat', pat);
+    localStorage.setItem('mockhive_user', JSON.stringify(user));
 
     showAppLayout();
     showToast(`Conectado como @${user.login}`);
@@ -109,6 +124,7 @@ async function handleGateLogin(e) {
 }
 
 function showAuthGate() {
+  document.documentElement.classList.remove('is-authenticated-pre');
   const gate = document.getElementById('auth-gate');
   const app = document.getElementById('app-layout');
   if (gate) gate.style.display = 'flex';
@@ -122,6 +138,7 @@ function showAuthGate() {
 }
 
 function showAppLayout() {
+  document.documentElement.classList.add('is-authenticated-pre');
   const gate = document.getElementById('auth-gate');
   const app = document.getElementById('app-layout');
   if (gate) gate.style.display = 'none';
@@ -134,6 +151,7 @@ function logout() {
   currentUser = null;
   sessionStorage.removeItem('mockhive_pat');
   localStorage.removeItem('mockhive_pat');
+  localStorage.removeItem('mockhive_user');
   showAuthGate();
   showToast('Sesión cerrada. Desconectado.');
   logTelemetry('[Auth] Logged out. Return to auth gate.');
