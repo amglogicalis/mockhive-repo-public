@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.2.2">
+  <link rel="stylesheet" href="style.css?v=1.2.3">
   <style>
     /* CRITICAL INLINE LOCKSCREEN STYLES */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -762,50 +762,65 @@
 
       <!-- TAB: POLLENPODS -->
       <section id="tab-pods" class="tab-pane">
+        <!-- 1. VISUAL INVENTORY OF POLLENPODS -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <h3>🌸 Inventario de PollenPods (Micro-VMs)</h3>
+              <span class="badge-tag" id="pods-count-badge">0 Pods</span>
+            </div>
+            <span class="badge-tag">Polyglot Serverless Engine</span>
+          </div>
+          <div class="card-body">
+            <p class="section-desc">Micro-funciones polyglot compiladas y listas para ejecución síncrona instantánea o integración como Tasks en Waggles.</p>
+            <div id="pods-inventory-grid" class="pods-inventory-grid">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. SPLIT VIEW: CREATOR & LIVE TESTER -->
         <div class="split-view">
           <!-- Left: Pod Creator -->
           <div class="card">
             <div class="card-header">
-              <h3>🌸 Crear Micro-VM Serverless (PollenPod)</h3>
-              <span class="badge-tag">Polyglot Runtime</span>
+              <h3>📦 Crear Nueva Micro-VM (PollenPod)</h3>
+              <span class="badge-tag">Compilación In-Memory</span>
             </div>
             <div class="card-body">
               <form id="form-create-pod" onsubmit="handleCreatePod(event)">
                 <div class="form-group">
                   <label>Nombre de la Función</label>
-                  <input type="text" id="pod-name" class="input-field" placeholder="ej. Image-Resizer-Rust" required>
+                  <input type="text" id="pod-name" class="input-field" placeholder="ej. Data-Transformer-Py o Image-Resizer-Rust" required>
                 </div>
 
                 <div class="form-row">
                   <div class="form-group">
                     <label>Runtime</label>
-                    <select id="pod-runtime" class="input-field">
+                    <select id="pod-runtime" class="input-field" onchange="onPodRuntimeChange()">
                       <option value="python3">Python 3.11 (with pip)</option>
+                      <option value="nodejs20">Node.js 20 LTS</option>
                       <option value="rust">Rust 1.78 (Native Cargo)</option>
                       <option value="go">Go 1.22</option>
-                      <option value="nodejs20">Node.js 20 LTS</option>
                       <option value="wasm">WebAssembly (WASM Sandbox)</option>
-                      <option value="bash">Bash / Shell</option>
+                      <option value="bash">Bash / Shell Script</option>
                     </select>
                   </div>
                   <div class="form-group">
-                    <label>Entrypoint</label>
-                    <input type="text" id="pod-entrypoint" class="input-field" value="handler" required>
+                    <label>Entrypoint (Nombre de Función)</label>
+                    <input type="text" id="pod-entrypoint" class="input-field" placeholder="handler" value="handler" required>
                   </div>
                 </div>
 
                 <div class="form-group">
-                  <label>Código del Handler</label>
-                  <textarea id="pod-code" class="input-field code-textarea" rows="8">def handler(event, context):
-    data = event.get("data", [])
-    processed = [x.upper() if isinstance(x, str) else x * 2 for x in data]
-    return {
-        "status": "success",
-        "processed": processed
-    }</textarea>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="margin: 0;">Código del Handler</label>
+                    <button type="button" class="btn-sm btn-secondary" onclick="insertPodTemplate()" style="font-size: 0.75rem;">📋 Insertar Plantilla</button>
+                  </div>
+                  <textarea id="pod-code" class="input-field code-textarea" rows="7" placeholder="// Escribe o pega aquí el código del handler..."></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block">📦 Compilar y Guardar Pod</button>
+                <button type="submit" class="btn btn-primary btn-block">🌸 Compilar y Guardar Pod</button>
               </form>
             </div>
           </div>
@@ -814,28 +829,31 @@
           <div class="card">
             <div class="card-header">
               <h3>⚡ Invocación Síncrona en Tiempo Real</h3>
+              <span class="badge-tag">Sub-50ms Latency</span>
             </div>
             <div class="card-body">
               <div class="form-group">
-                <label>Seleccionar Pod</label>
-                <select id="select-test-pod" class="input-field">
+                <label>Seleccionar Pod para Ejecución</label>
+                <select id="select-test-pod" class="input-field" onchange="onSelectTestPodChange()">
                   <!-- Injected via JS -->
                 </select>
               </div>
 
               <div class="form-group">
                 <label>Payload JSON de Entrada</label>
-                <textarea id="test-pod-payload" class="input-field code-textarea" rows="4">{"data": ["alpha", "beta", "mockhive", 42]}</textarea>
+                <textarea id="test-pod-payload" class="input-field code-textarea" rows="4" placeholder='{"items": ["alpha", "beta"], "multiplier": 2}'></textarea>
               </div>
 
-              <button class="btn btn-primary" onclick="testInvokePod()">🚀 Invocar Micro-VM</button>
+              <button class="btn btn-primary btn-block" onclick="testInvokePod()">🚀 Invocar Micro-VM</button>
 
               <div id="pod-test-result" class="pod-result-box hidden">
-                <h4>Resultado de la Invocación:</h4>
-                <div class="result-metrics">
-                  <span id="res-latency" class="metric-pill">⏱️ 24ms</span>
-                  <span id="res-status" class="metric-pill success">HTTP 200 OK</span>
-                  <span id="res-cold" class="metric-pill">Warm Pool ⚡</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <h4 style="margin: 0; font-size: 0.9rem;">Resultado de la Invocación:</h4>
+                  <div class="result-metrics">
+                    <span id="res-latency" class="metric-pill">⏱️ 0ms</span>
+                    <span id="res-status" class="metric-pill success">HTTP 200 OK</span>
+                    <span id="res-cold" class="metric-pill">Warm Pool ⚡</span>
+                  </div>
                 </div>
                 <pre id="res-json-output" class="code-pre"></pre>
               </div>
@@ -1317,6 +1335,57 @@ sudo apt-get install cloudflared</code></pre>
     </div>
   </div>
 
+  <!-- MODAL: EDIT POLLENPOD -->
+  <div id="modal-edit-pod" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-edit-pod')">
+    <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🌸 Editar Micro-VM (PollenPod)</h3>
+        <button class="modal-close" onclick="closeEditPodModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-pod" onsubmit="handleSavePodEdit(event)">
+          <input type="hidden" id="edit-pod-id">
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre del Pod</label>
+              <input type="text" id="edit-pod-name" class="input-field" required>
+            </div>
+            <div class="form-group">
+              <label>Runtime</label>
+              <select id="edit-pod-runtime" class="input-field">
+                <option value="python3">Python 3.11 (with pip)</option>
+                <option value="nodejs20">Node.js 20 LTS</option>
+                <option value="rust">Rust 1.78 (Native Cargo)</option>
+                <option value="go">Go 1.22</option>
+                <option value="wasm">WebAssembly (WASM Sandbox)</option>
+                <option value="bash">Bash / Shell Script</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Entrypoint (Función Principal)</label>
+              <input type="text" id="edit-pod-entrypoint" class="input-field" required>
+            </div>
+            <div class="form-group">
+              <label>Versión SemVer</label>
+              <input type="text" id="edit-pod-version" class="input-field" value="1.0.0">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Código del Handler</label>
+            <textarea id="edit-pod-code" class="input-field code-textarea" rows="8" placeholder="// Código de la función..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Guardar Cambios del Pod</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: RUN WAGGLE (LIVE DAG EXECUTION MONITOR) -->
   <div id="modal-run-waggle" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-run-waggle')">
     <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
@@ -1572,6 +1641,6 @@ sudo apt-get install cloudflared</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=1.2.2"></script>
+  <script src="app.js?v=1.2.3"></script>
 </body>
 </html>

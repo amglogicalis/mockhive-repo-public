@@ -1384,5 +1384,105 @@ body {
   margin-top: 4px;
 }
 
+/* POLLENPODS INVENTORY STYLES */
+.pods-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.pod-card {
+  background: #0d0d0d;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.pod-card:hover {
+  border-color: #444444;
+  background: #121212;
+  transform: translateY(-1px);
+}
+
+.pod-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pod-card-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pod-card-title-wrap h4 {
+  margin: 0;
+  font-size: 0.96rem;
+  color: #ffffff;
+}
+
+.pod-runtime-badge {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.pod-runtime-badge.python3 { background: #1e3a5f; color: #60a5fa; border: 1px solid #2563eb; }
+.pod-runtime-badge.nodejs20 { background: #14532d; color: #4ade80; border: 1px solid #16a34a; }
+.pod-runtime-badge.rust { background: #7c2d12; color: #fb923c; border: 1px solid #ea580c; }
+.pod-runtime-badge.go { background: #083344; color: #38bdf8; border: 1px solid #0284c7; }
+.pod-runtime-badge.wasm { background: #3b0764; color: #c084fc; border: 1px solid #9333ea; }
+.pod-runtime-badge.bash { background: #27272a; color: #e4e4e7; border: 1px solid #52525b; }
+
+.pod-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.pod-card-details code {
+  color: #ffffff;
+  font-family: var(--font-mono);
+  background: #181818;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.pod-code-preview-box {
+  background: #000000;
+  border: 1px solid #1e1e1e;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: #a3a3a3;
+  max-height: 80px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.pod-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid #1f1f1f;
+  padding-top: 10px;
+}
+
+
 
 

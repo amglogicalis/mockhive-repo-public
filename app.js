@@ -1997,24 +1997,340 @@ function handleDispatchGrid(e) {
   logTelemetry(`[HiveGrid Job] ${name} completed across ${workers} parallel workers in 12s`);
 }
 
-function renderGridJobs() {
-  const container = document.getElementById('grid-jobs-list');
+// ─── POLLENPODS (SERVERLESS MICRO-VMS) ──────────────────────────────────────
+
+const POD_TEMPLATES = {
+  python3: `def handler(event, context):
+    data = event.get("data", event)
+    return {
+        "status": "success",
+        "processed": data,
+        "runtime": "python3.11"
+    }`,
+  nodejs20: `export async function handler(event, context) {
+    const data = event.data || event;
+    return {
+        status: "success",
+        processed: data,
+        runtime: "nodejs20"
+    };
+}`,
+  rust: `// Fast Rust Polyglot Micro-Handler
+pub fn handler(event: &serde_json::Value) -> serde_json::Value {
+    let items = event.get("items").unwrap_or(event);
+    json!({
+        "status": "success",
+        "processed": items,
+        "runtime": "rust1.78"
+    })
+}`,
+  go: `package main
+
+// Handler function signature
+func Handler(event map[string]interface{}) map[string]interface{} {
+    return map[string]interface{}{
+        "status": "success",
+        "received": event,
+        "runtime": "go1.22",
+    }
+}`,
+  wasm: `// WebAssembly Sandboxed Micro-Handler
+export function handler(event) {
+    return JSON.stringify({
+        status: "wasm_sandbox_ok",
+        event: event,
+        memoryPages: 1
+    });
+}`,
+  bash: `#!/usr/bin/env bash
+# Event payload available via stdin or environment
+INPUT=$(cat)
+echo "{\\"status\\": \\"success\\", \\"input\\": $INPUT, \\"runtime\\": \\"bash\\"}"`
+};
+
+function onPodRuntimeChange() {
+  const runtime = document.getElementById('pod-runtime').value;
+  const codeEl = document.getElementById('pod-code');
+  if (codeEl && (!codeEl.value.trim() || codeEl.dataset.isTemplate === 'true')) {
+    codeEl.value = POD_TEMPLATES[runtime] || '';
+    codeEl.dataset.isTemplate = 'true';
+  }
+}
+
+function insertPodTemplate() {
+  const runtime = document.getElementById('pod-runtime').value;
+  const codeEl = document.getElementById('pod-code');
+  if (codeEl) {
+    codeEl.value = POD_TEMPLATES[runtime] || '';
+    codeEl.dataset.isTemplate = 'true';
+    showToast(`✓ Plantilla para ${runtime} insertada`);
+  }
+}
+
+function renderPodsList() {
+  const container = document.getElementById('pods-inventory-grid');
+  const countBadge = document.getElementById('pods-count-badge');
+  const selectTest = document.getElementById('select-test-pod');
+
+  if (countBadge) countBadge.innerText = `${podsList.length} Pod${podsList.length === 1 ? '' : 's'}`;
+
+  if (selectTest) {
+    if (podsList.length === 0) {
+      selectTest.innerHTML = '<option value="">No hay Pods creados</option>';
+    } else {
+      selectTest.innerHTML = podsList.map(p => `
+        <option value="${p.podId}">${p.name} (${p.runtime || 'python3'})</option>
+      `).join('');
+    }
+  }
+
   if (!container) return;
-  if (gridJobsList.length === 0) {
-    container.innerHTML = '<p class="section-desc">No hay jobs distribuidos registrados.</p>';
+
+  if (podsList.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; background: #080808; border: 1px dashed #222; border-radius: 8px; padding: 24px; text-align: center; color: var(--text-muted);">
+        <p style="margin-bottom: 8px;">🌸 No hay Micro-VMs (PollenPods) registradas.</p>
+        <small>Crea tu primera función polyglot en Python, Rust, Go, Node.js o WASM utilizando el formulario inferior.</small>
+      </div>
+    `;
     return;
   }
-  container.innerHTML = gridJobsList.map(j => `
-    <div class="node-card" style="margin-bottom: 12px;">
-      <div class="node-header">
-        <h4>🕸️ ${j.name}</h4>
-        <span class="status-tag success">COMPLETED</span>
+
+  const RUNTIME_ICONS = {
+    python3: '🐍',
+    nodejs20: '⚡',
+    rust: '🦀',
+    go: '🦫',
+    wasm: '🌐',
+    bash: '💻'
+  };
+
+  container.innerHTML = podsList.map(p => {
+    const icon = RUNTIME_ICONS[p.runtime] || '🌸';
+    const runtimeClass = p.runtime || 'python3';
+    const entrypoint = p.entrypoint || 'handler';
+    const version = p.version || '1.0.0';
+    const codeSnippet = p.code || POD_TEMPLATES[p.runtime] || '// Sin código guardado';
+
+    return `
+      <div class="pod-card">
+        <div class="pod-card-header">
+          <div class="pod-card-title-wrap">
+            <span style="font-size: 1.2rem;">${icon}</span>
+            <div>
+              <h4>${p.name}</h4>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${p.podId}</span>
+            </div>
+          </div>
+          <span class="pod-runtime-badge ${runtimeClass}">${p.runtime || 'polyglot'}</span>
+        </div>
+
+        <div class="pod-card-details">
+          <div><strong>Entrypoint:</strong> <code>${entrypoint}()</code></div>
+          <div><strong>Versión:</strong> <span style="font-family: var(--font-mono); color: #ccc;">v${version}</span></div>
+        </div>
+
+        <div class="pod-code-preview-box"><code>${escapeHtml(codeSnippet)}</code></div>
+
+        <div class="pod-card-actions">
+          <button class="btn-sm btn-primary" onclick="selectPodForTesting('${p.podId}')">⚡ Probar Invocación</button>
+          <button class="btn-sm btn-secondary" onclick="openEditPodModal('${p.podId}')">⚙️ Editar</button>
+          <button class="btn-sm btn-secondary" onclick="deletePod('${p.podId}')">🗑️ Eliminar</button>
+        </div>
       </div>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">
-        ${j.workers} Workers Paralelos en GitHub Actions Matrix • Reducción en ${j.elapsedSeconds}s
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
+}
+
+function handleCreatePod(e) {
+  e.preventDefault();
+  if (!currentUser) { showAuthGate(); return; }
+
+  const name = document.getElementById('pod-name').value.trim();
+  const runtime = document.getElementById('pod-runtime').value;
+  const entrypoint = document.getElementById('pod-entrypoint').value.trim() || 'handler';
+  const code = document.getElementById('pod-code').value.trim() || POD_TEMPLATES[runtime] || '';
+
+  const podId = 'pod_' + name.toLowerCase().replace(/[^a-z0-9_]/g, '_') + '_' + Math.random().toString(36).slice(2, 6);
+
+  const newPod = {
+    podId,
+    name,
+    runtime,
+    entrypoint,
+    version: '1.0.0',
+    code,
+    createdAt: new Date().toISOString()
+  };
+
+  podsList.push(newPod);
+  persistToGitHub();
+  renderAll();
+
+  document.getElementById('form-create-pod').reset();
+  document.getElementById('pod-entrypoint').value = 'handler';
+
+  showToast(`✓ Micro-VM '${name}' compilada y guardada`);
+  logTelemetry(`[PollenPod Created] ${name} (${runtime}) initialized with entrypoint ${entrypoint}()`);
+}
+
+function openEditPodModal(podId) {
+  const pod = podsList.find(p => p.podId === podId);
+  if (!pod) return;
+
+  document.getElementById('edit-pod-id').value = pod.podId;
+  document.getElementById('edit-pod-name').value = pod.name;
+  document.getElementById('edit-pod-runtime').value = pod.runtime || 'python3';
+  document.getElementById('edit-pod-entrypoint').value = pod.entrypoint || 'handler';
+  document.getElementById('edit-pod-version').value = pod.version || '1.0.0';
+  document.getElementById('edit-pod-code').value = pod.code || '';
+
+  document.getElementById('modal-edit-pod').classList.remove('hidden');
+}
+
+function closeEditPodModal() {
+  document.getElementById('modal-edit-pod').classList.add('hidden');
+}
+
+function handleSavePodEdit(e) {
+  e.preventDefault();
+  const podId = document.getElementById('edit-pod-id').value;
+  const pod = podsList.find(p => p.podId === podId);
+  if (!pod) return;
+
+  pod.name = document.getElementById('edit-pod-name').value.trim();
+  pod.runtime = document.getElementById('edit-pod-runtime').value;
+  pod.entrypoint = document.getElementById('edit-pod-entrypoint').value.trim();
+  pod.version = document.getElementById('edit-pod-version').value.trim() || '1.0.0';
+  pod.code = document.getElementById('edit-pod-code').value;
+  pod.updatedAt = new Date().toISOString();
+
+  persistToGitHub();
+  renderAll();
+  closeEditPodModal();
+  showToast(`✓ Pod '${pod.name}' actualizado con éxito`);
+  logTelemetry(`[PollenPod Updated] ${pod.name} saved.`);
+}
+
+function deletePod(podId) {
+  const pod = podsList.find(p => p.podId === podId);
+  if (!pod) return;
+
+  showConfirmModal('¿Eliminar PollenPod?', `¿Estás seguro de que deseas eliminar la micro-función '${pod.name}'?`, () => {
+    podsList = podsList.filter(p => p.podId !== podId);
+    persistToGitHub();
+    renderAll();
+    showToast(`Pod '${pod.name}' eliminado.`);
+    logTelemetry(`[PollenPod Deleted] ${pod.podId} removed.`);
+  });
+}
+
+function selectPodForTesting(podId) {
+  const select = document.getElementById('select-test-pod');
+  if (select) {
+    select.value = podId;
+    select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  showToast(`Pod seleccionado para invocación`);
+}
+
+function onSelectTestPodChange() {
+  const resultBox = document.getElementById('pod-test-result');
+  if (resultBox) resultBox.classList.add('hidden');
+}
+
+async function testInvokePod() {
+  const select = document.getElementById('select-test-pod');
+  const podId = select ? select.value : '';
+  const pod = podsList.find(p => p.podId === podId);
+  if (!pod) {
+    showToast('Selecciona un Pod válido para invocar');
+    return;
+  }
+
+  const rawPayload = document.getElementById('test-pod-payload').value.trim();
+  let payload = {};
+  if (rawPayload) {
+    try {
+      payload = JSON.parse(rawPayload);
+    } catch (err) {
+      showToast('Error de sintaxis JSON en el Payload de Entrada');
+      return;
+    }
+  }
+
+  const startTime = performance.now();
+  let responseData = null;
+  let isCold = Math.random() < 0.2;
+
+  try {
+    if (pod.runtime === 'nodejs20') {
+      let userCode = pod.code || '';
+      userCode = userCode.replace(/export\s+async\s+function\s+\w+\s*\(/, 'async function handler(')
+                         .replace(/export\s+function\s+\w+\s*\(/, 'function handler(');
+      
+      const runnerFn = new Function('event', 'context', `
+        ${userCode}
+        if (typeof ${pod.entrypoint || 'handler'} === 'function') {
+          return ${pod.entrypoint || 'handler'}(event, context);
+        }
+        return { status: "success", executed: true, data: event };
+      `);
+      responseData = await runnerFn(payload, { podId: pod.podId, memoryLimitMb: 128 });
+    } else {
+      const processed = payload.items ? payload.items.map(x => typeof x === 'string' ? x.toUpperCase() : x * 2) : payload;
+      responseData = {
+        status: "success",
+        podId: pod.podId,
+        runtime: pod.runtime || 'polyglot',
+        entrypoint: `${pod.entrypoint || 'handler'}()`,
+        output: {
+          received: payload,
+          transformed: processed,
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
+  } catch (evalErr) {
+    responseData = {
+      error: "RuntimeExecutionError",
+      message: evalErr.message,
+      podId: pod.podId
+    };
+  }
+
+  const elapsedMs = Math.max(8, Math.round(performance.now() - startTime + (isCold ? 25 : 4)));
+
+  const resultBox = document.getElementById('pod-test-result');
+  const latencyPill = document.getElementById('res-latency');
+  const statusPill = document.getElementById('res-status');
+  const coldPill = document.getElementById('res-cold');
+  const jsonPre = document.getElementById('res-json-output');
+
+  if (latencyPill) latencyPill.innerText = `⏱️ ${elapsedMs}ms`;
+  if (statusPill) {
+    statusPill.innerText = responseData.error ? 'HTTP 500 ERROR' : 'HTTP 200 OK';
+    statusPill.className = `metric-pill ${responseData.error ? 'failed' : 'success'}`;
+  }
+  if (coldPill) {
+    coldPill.innerText = isCold ? 'Cold Start ❄️' : 'Warm Pool ⚡';
+  }
+  if (jsonPre) {
+    jsonPre.innerText = JSON.stringify(responseData, null, 2);
+  }
+  if (resultBox) {
+    resultBox.classList.remove('hidden');
+  }
+
+  logTelemetry(`[PollenPod Invoked] ${pod.name} executed in ${elapsedMs}ms (${statusPill.innerText})`);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
 }
 
 function logTelemetry(msg) {
@@ -2267,6 +2583,15 @@ window.onStorageTypeChange = onStorageTypeChange;
 window.onEditLifecycleChange = onEditLifecycleChange;
 window.onEditStorageTypeChange = onEditStorageTypeChange;
 window.testInvokePod = testInvokePod;
+window.handleCreatePod = handleCreatePod;
+window.openEditPodModal = openEditPodModal;
+window.closeEditPodModal = closeEditPodModal;
+window.handleSavePodEdit = handleSavePodEdit;
+window.deletePod = deletePod;
+window.selectPodForTesting = selectPodForTesting;
+window.onSelectTestPodChange = onSelectTestPodChange;
+window.onPodRuntimeChange = onPodRuntimeChange;
+window.insertPodTemplate = insertPodTemplate;
 window.syncWithGitHub = syncWithGitHub;
 window.manualRefreshAll = manualRefreshAll;
 
