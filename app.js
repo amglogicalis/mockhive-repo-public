@@ -42,14 +42,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn('Stored token is invalid or revoked (401):', e.message);
         logout();
       } else {
-        console.warn('Network issue validating token, preserving offline session:', e.message);
-        if (currentUser) renderAuthenticatedState();
-        await syncWithGitHub().catch(() => {});
       }
     }
   } else {
     showAuthGate();
   }
+
+  // Fast Nav Smooth Scroll Setup for Onboarding
+  document.querySelectorAll('.fast-nav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = item.getAttribute('href')?.replace('#', '');
+      const targetEl = document.getElementById(targetId);
+      const container = document.querySelector('.onboarding-content');
+      if (targetEl && container) {
+        document.querySelectorAll('.fast-nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
 });
 
 // Standard Safe UTF-8 Base64 Decoder (No Deprecated escape() / URIError)
