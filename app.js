@@ -558,14 +558,24 @@ function renderNodesList() {
           <div><strong>Storage:</strong> ${storageDesc}</div>
           <div><strong>Tunnel:</strong> ${n.tunnelProvider}</div>
         </div>
-        ${(isRunning && n.sshCommand) ? `
-          <div class="ssh-box">
-            <code>${n.sshCommand}</code>
-            <button class="btn-sm btn-secondary" onclick="copySSHCommand('${n.sshCommand}')">Copiar SSH</button>
+        ${(isRunning && (n.sshCommand || n.webCommand)) ? `
+          <div class="ssh-box" style="display: flex; flex-direction: column; gap: 8px;">
+            ${n.sshCommand ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <code style="word-break: break-all;">${n.sshCommand}</code>
+                <button class="btn-sm btn-secondary" onclick="copySSHCommand('${n.sshCommand}')">Copiar SSH</button>
+              </div>
+            ` : ''}
+            ${n.webCommand ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
+                <span style="font-size: 0.8rem; color: #4ade80; display: flex; align-items: center; gap: 4px;">🌐 <strong>Web Terminal:</strong> Activa</span>
+                <a href="${n.webCommand}" target="_blank" class="btn-sm btn-primary" style="text-decoration: none;">🚀 Abrir en Navegador</a>
+              </div>
+            ` : ''}
           </div>
         ` : `
           <div class="ssh-pending-box">
-            <span>${isProvisioning ? '⚡ Lanzando runner en GitHub Actions y generando endpoint SSH...' : 'Servidor detenido. Pulsa "⚡ Iniciar Servidor" para despachar un runner real de GitHub Actions y generar el túnel SSH.'}</span>
+            <span>${isProvisioning ? '⚡ Lanzando runner en GitHub Actions y generando túneles...' : 'Servidor detenido. Pulsa "⚡ Iniciar Servidor" para despachar un runner real de GitHub Actions y generar los túneles.'}</span>
           </div>
         `}
         <div class="node-actions">
@@ -745,7 +755,7 @@ async function startNode(nodeId) {
           const json = await statRes.json();
           const statData = JSON.parse(decodeBase64(json.content));
           
-          if (statData.status === 'running' && statData.sshCommand) {
+          if (statData.status === 'running' && (statData.sshCommand || statData.webCommand)) {
             node.status = 'running';
             node.sshCommand = statData.sshCommand;
             node.webCommand = statData.webCommand;
