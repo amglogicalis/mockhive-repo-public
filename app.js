@@ -566,7 +566,7 @@ function renderNodesList() {
               <div>
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                   <code style="word-break: break-all; font-weight: 600;">${n.sshCommand}</code>
-                  <button class="btn-sm btn-secondary" onclick="copySSHCommand('${n.sshCommand}')">Copiar SSH</button>
+                  <button class="btn-sm btn-secondary" onclick="copyNodeSSH('${n.nodeId}')">Copiar SSH</button>
                 </div>
                 <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
                   🔑 <strong>Password SSH:</strong> <code>${n.sshPassword || 'mockhive2026'}</code>
@@ -885,11 +885,51 @@ function deleteNode(nodeId) {
   });
 }
 
+function copyNodeSSH(nodeId) {
+  const node = nodesList.find(n => n.nodeId === nodeId);
+  if (!node || !node.sshCommand) {
+    showToast('No hay comando SSH disponible');
+    return;
+  }
+  const cleanCmd = node.sshCommand.replace(/\(.*?\)/g, '').trim();
+  copyTextToClipboard(cleanCmd);
+}
+
 function copySSHCommand(cmd) {
   if (!cmd) return;
   const cleanCmd = cmd.replace(/\(.*?\)/g, '').trim();
-  navigator.clipboard.writeText(cleanCmd);
-  showToast(`Comando SSH copiado: ${cleanCmd}`);
+  copyTextToClipboard(cleanCmd);
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`✓ Comando SSH copiado al portapapeles`);
+    }).catch(() => {
+      fallbackCopyText(text);
+    });
+  } else {
+    fallbackCopyText(text);
+  }
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.top = '0';
+  ta.style.left = '0';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast(`✓ Comando SSH copiado al portapapeles`);
+  } catch (err) {
+    prompt('Copia manualmente este comando SSH:', text);
+  }
+  document.body.removeChild(ta);
 }
 
 function onLifecycleChange() {
@@ -2214,6 +2254,7 @@ window.switchTab = switchTab;
 window.startNode = startNode;
 window.stopNode = stopNode;
 window.deleteNode = deleteNode;
+window.copyNodeSSH = copyNodeSSH;
 window.copySSHCommand = copySSHCommand;
 window.copyModalSSH = copyModalSSH;
 window.openShellInNewTab = openShellInNewTab;

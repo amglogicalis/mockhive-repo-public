@@ -1226,3 +1226,128 @@ body {
 .connector-badge.storage { background: #14532d; color: #4ade80; border: 1px solid #16a34a; }
 .connector-badge.pod, .connector-badge.code { background: #4c1d95; color: #c084fc; border: 1px solid #7c3aed; }
 
+/* HIVENODE SHELL MODAL STYLES */
+#modal-node-shell .modal-dialog {
+  max-width: 680px;
+  width: 92vw;
+  box-sizing: border-box;
+}
+
+.shell-hub-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.shell-connection-card {
+  background: #111111;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.shell-icon-col {
+  font-size: 1.8rem;
+}
+
+.shell-info-col h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.05rem;
+  color: #ffffff;
+}
+
+.shell-info-col p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.shell-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 620px) {
+  .shell-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shell-action-box {
+  background: #0d0d0d;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.action-box-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.action-box-header h5 {
+  margin: 0 0 4px 0;
+  font-size: 0.92rem;
+  color: #ffffff;
+}
+
+.action-box-header small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  display: block;
+}
+
+.ssh-command-display {
+  background: #000000;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.ssh-command-display code {
+  font-size: 0.76rem;
+  word-break: break-all;
+  color: #4ade80;
+  font-family: var(--font-mono);
+}
+
+.shell-telemetry-box {
+  background: #0a0a0a;
+  border: 1px solid #1f1f1f;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  color: #888888;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.telemetry-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+
