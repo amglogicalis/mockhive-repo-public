@@ -282,7 +282,70 @@ function loadDefaultDeployedResources() {
     }
   ];
 
-  wagglesList = [];
+  wagglesList = [
+    {
+      waggleId: 'waggle_terra_autonomous_pipeline',
+      name: 'Terra Autonomous Swarm & Storage Pipeline',
+      description: 'Orquestación de extremo a extremo entre Maskito (Seeding), Mantx (AI), PollenPod (Micro-VM), Rolla (Storage) y Webbl (CDN)',
+      target: 'cloud_runner',
+      timeout: 120,
+      status: 'ready',
+      startAt: 'MaskitoSyntheticSeeder',
+      initialInput: { initiatedBy: 'terra_controller_admin' },
+      definition: {
+        Comment: 'Pipeline autónomo de procesamiento de transacciones del ecosistema Terra',
+        StartAt: 'MaskitoSyntheticSeeder',
+        States: {
+          MaskitoSyntheticSeeder: {
+            Type: 'Task',
+            Comment: 'Genera lote sintético de órdenes mediante Maskito Larva Forge',
+            Next: 'MantxNeuralClassifier'
+          },
+          MantxNeuralClassifier: {
+            Type: 'Task',
+            Comment: 'Clasificación de riesgo de fraude mediante modelo neuronal Mantx',
+            Next: 'FraudDecision'
+          },
+          FraudDecision: {
+            Type: 'Choice',
+            Choices: [
+              {
+                Variable: '$.overallFraudScore',
+                Operator: 'lt',
+                Value: 0.20,
+                Next: 'PollenPodNormalizer'
+              }
+            ],
+            Default: 'FlagSuspiciousOrder'
+          },
+          PollenPodNormalizer: {
+            Type: 'Task',
+            Comment: 'Micro-VM PollenPod normaliza y formatea los datos para contabilidad',
+            Next: 'RollaBallVaultArchive'
+          },
+          RollaBallVaultArchive: {
+            Type: 'Task',
+            Comment: 'Archiva el lote final en almacenamiento inmutable Rolla Ball',
+            Next: 'WebblEdgeNotification'
+          },
+          WebblEdgeNotification: {
+            Type: 'Task',
+            Comment: 'Publica alerta de despliegue en CDN perimetral Webbl',
+            Next: 'PipelineComplete'
+          },
+          FlagSuspiciousOrder: {
+            Type: 'Fail',
+            Cause: 'Nivel de riesgo de fraude detectado por Mantx superior al umbral permitido'
+          },
+          PipelineComplete: {
+            Type: 'Succeed',
+            Comment: 'Flujo completo del ecosistema Terra ejecutado con éxito'
+          }
+        }
+      },
+      createdAt: new Date().toISOString()
+    }
+  ];
 
   podsList = [
     {
@@ -986,63 +1049,6 @@ function onEditStorageTypeChange() {
   const val = document.getElementById('edit-node-storage-type').value;
   document.getElementById('edit-storage-rolla-config').classList.toggle('hidden', val !== 'rolla_ball');
   document.getElementById('edit-storage-s3-config').classList.toggle('hidden', val !== 's3_custom');
-}
-
-function renderPodsList() {
-  const select = document.getElementById('select-test-pod');
-  if (!select) return;
-  if (podsList.length === 0) {
-    select.innerHTML = '<option value="">No hay Pods registrados</option>';
-    return;
-  }
-  select.innerHTML = podsList.map(p => `<option value="${p.podId}">${p.name} (${p.runtime})</option>`).join('');
-}
-
-function handleCreatePod(e) {
-  e.preventDefault();
-  if (!currentUser) { showAuthGate(); return; }
-
-  const name = document.getElementById('pod-name').value;
-  const runtime = document.getElementById('pod-runtime').value;
-  const newPod = {
-    podId: 'pod_' + Math.random().toString(36).slice(2, 8),
-    name,
-    runtime,
-    version: '1.0.0',
-    createdAt: new Date().toISOString()
-  };
-  podsList.push(newPod);
-  persistToGitHub();
-  renderAll();
-  showToast(`PollenPod '${name}' guardado con éxito`);
-  logTelemetry(`[PollenPod Created] ${name} compiled in ${runtime}`);
-}
-
-function testInvokePod() {
-  const select = document.getElementById('select-test-pod');
-  const pod = podsList.find(p => p.podId === select.value) || podsList[0];
-  if (!pod) { showToast('Crea primero un PollenPod'); return; }
-
-  const payloadStr = document.getElementById('test-pod-payload').value;
-  let payload = {};
-  try { payload = JSON.parse(payloadStr); } catch (err) { showToast('JSON inválido'); return; }
-
-  const latency = Math.floor(Math.random() * 25) + 14;
-  document.getElementById('res-latency').innerText = `⏱️ ${latency}ms`;
-
-  const output = {
-    invocationId: 'inv_' + Math.random().toString(36).slice(2, 8),
-    podId: pod.podId,
-    runtime: pod.runtime,
-    processedPayload: payload,
-    status: 'success',
-    executedAt: new Date().toISOString()
-  };
-
-  document.getElementById('res-json-output').innerText = JSON.stringify(output, null, 2);
-  document.getElementById('pod-test-result').classList.remove('hidden');
-  showToast(`Invocación completada en ${latency}ms`);
-  logTelemetry(`[Pod Invocation] ${pod.name} responded in ${latency}ms`);
 }
 
 // ─── WAGGLES & CUSTOM CONNECTORS SUITE ──────────────────────────────────────
