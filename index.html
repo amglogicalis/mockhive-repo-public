@@ -922,15 +922,39 @@
             </article>
 
             <article id="guide-hivenodes" class="guide-card">
-              <h2>🏰 HiveNodes: Servidores Virtuales con Conexión SSH</h2>
+              <h2>🏰 HiveNodes: Servidores Virtuales, Web Terminal & SSH</h2>
               <p>
-                Un HiveNode es una máquina virtual Ubuntu completa ejecutada sobre un runner de GitHub Actions. Para conectarte:
+                Un HiveNode es una máquina virtual Ubuntu completa ejecutada sobre un runner de GitHub Actions con persistencia de archivos en <code>/mockhive/data</code>. Dispone de dos formas de conexión:
               </p>
-              <ul>
-                <li><strong>Iniciar Servidor:</strong> Haz clic en <em>⚡ Iniciar Servidor</em> en la tarjeta del nodo. Esto dispara un runner real en GitHub Actions con servidor Tmate.</li>
-                <li><strong>Copiar SSH:</strong> Al iniciar, el runner emite una URL SSH dinámica real que puedes copiar directamente a tu terminal.</li>
-                <li><strong>Web Shell:</strong> Abre una sesión interactiva en vivo incrustada en el navegador.</li>
-              </ul>
+              
+              <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px;">
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
+                  <h4 style="color: #4ade80; margin-bottom: 6px; font-size: 0.95rem;">🌐 Vía 1: Web Terminal Instantánea (Recomendada - Cero Instalación)</h4>
+                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Pulsa el botón <strong>🚀 Abrir en Navegador</strong> en la tarjeta del servidor. Entrarás directamente a una terminal xterm interactiva completa con zsh/bash, soporte para copiar/pegar, colores y permisos de <code>sudo</code> sin instalar ningún cliente.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">💻 Vía 2: SSH Nativo desde PowerShell / Terminal / VS Code</h4>
+                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin-bottom: 8px;">
+                    Para evitar que los routers domésticos y firewalls bloqueen los puertos TCP no estándar, MockHive tuneliza el tráfico SSH a través del <strong>puerto 443 (HTTPS)</strong> mediante Cloudflare Tunnel.
+                  </p>
+                  <p style="color: #aaa; font-size: 0.85rem; margin-bottom: 6px;"><strong>📦 Requisito Único (Instalar binario de Cloudflare):</strong></p>
+                  <pre style="background: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: #4ade80; border: 1px solid #333; margin-bottom: 8px;"><code># En Windows (PowerShell):
+winget install --id Cloudflare.cloudflared
+
+# En macOS (Homebrew):
+brew install cloudflare/cloudflare/cloudflared
+
+# En Linux (Debian / Ubuntu):
+sudo apt-get install cloudflared</code></pre>
+                  <p style="color: #aaa; font-size: 0.85rem; margin-bottom: 6px;"><strong>⚡ Conexión:</strong></p>
+                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Copia el comando SSH de tu nodo (que incluye el ProxyCommand de Cloudflare) y pégalo en tu terminal. Te solicitará la <strong>Contraseña SSH</strong> configurada en el formulario (por defecto: <code>mockhive2026</code>).
+                  </p>
+                </div>
+              </div>
             </article>
 
             <article id="guide-247" class="guide-card">
@@ -1541,6 +1565,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.1.9"></script>
+  <script src="app.js?v=1.2.0"></script>
 </body>
 </html>
