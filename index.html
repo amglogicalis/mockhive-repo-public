@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.2.1">
+  <link rel="stylesheet" href="style.css?v=1.2.2">
   <style>
     /* CRITICAL INLINE LOCKSCREEN STYLES */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1088,7 +1088,7 @@ sudo apt-get install cloudflared</code></pre>
 
   <!-- MODAL: WEB SHELL (FOR HIVENODE) -->
   <div id="modal-node-shell" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-node-shell')">
-    <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
+    <div class="modal-dialog modal-shell-dialog" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div class="shell-header-left">
           <h3 id="shell-modal-title">🖥️ Conexión: HiveNode</h3>
@@ -1111,32 +1111,39 @@ sudo apt-get install cloudflared</code></pre>
           <button class="btn btn-primary btn-block" style="margin-top: 10px;" onclick="startFromModal()">⚡ Iniciar Servidor Ahora</button>
         </div>
 
-        <!-- Active Actions Grid (Only visible when RUNNING) -->
-        <div id="shell-active-actions" class="shell-options-grid hidden">
-          <!-- Web Terminal Direct Option -->
+        <!-- Active Actions Stack (Only visible when RUNNING) -->
+        <div id="shell-active-actions" class="shell-options-stack hidden">
+          <!-- 1. Web Terminal Direct Option -->
           <div class="shell-action-box">
             <div class="action-box-header">
               <span class="box-icon">🌐</span>
-              <div>
-                <h5>Terminal Web Interactiva</h5>
-                <small>Acceso completo xterm.js directo en navegador sin instalar nada</small>
+              <div class="action-box-title-wrap">
+                <h5>Vía 1: Terminal Web en Navegador (Recomendada)</h5>
+                <small>Acceso directo xterm.js interactivo con persistencia en <code>/mockhive/data</code></small>
               </div>
             </div>
             <button class="btn btn-primary btn-block" onclick="openShellInNewTab()">🚀 Abrir Terminal Web (Live Session)</button>
           </div>
 
-          <!-- Direct SSH Option -->
+          <!-- 2. Direct SSH Option -->
           <div class="shell-action-box">
             <div class="action-box-header">
               <span class="box-icon">💻</span>
-              <div>
-                <h5>Conexión SSH por Consola</h5>
-                <small>Pega este comando en tu PowerShell, CMD o Terminal Linux</small>
+              <div class="action-box-title-wrap">
+                <h5>Vía 2: Conexión SSH Nativa (PowerShell / Terminal / VS Code)</h5>
+                <small>Requiere <code>cloudflared</code> para tunelizar por el puerto estándar 443 sin bloqueos de red</small>
               </div>
             </div>
-            <div class="ssh-command-display">
-              <code id="modal-ssh-cmd">ssh ...</code>
-              <button class="btn-sm btn-secondary" onclick="copyModalSSH()">Copiar</button>
+            <div class="ssh-command-box-modal">
+              <div class="ssh-cmd-content">
+                <code id="modal-ssh-cmd">ssh ...</code>
+              </div>
+              <div class="ssh-cmd-actions">
+                <button class="btn-sm btn-secondary" onclick="copyModalSSH()">📋 Copiar Comando SSH</button>
+              </div>
+            </div>
+            <div class="ssh-password-modal-hint" id="modal-ssh-pass-hint">
+              🔑 <strong>Password SSH:</strong> <code id="modal-ssh-pass-val">mockhive2026</code>
             </div>
           </div>
         </div>
@@ -1145,7 +1152,7 @@ sudo apt-get install cloudflared</code></pre>
         <div class="shell-telemetry-box">
           <div class="telemetry-row">
             <span><strong>Runner OS:</strong> <span id="telemetry-os">Ubuntu 24.04 LTS</span></span>
-            <span><strong>Túnel:</strong> <span id="telemetry-tunnel">Tmate Reverse Proxy</span></span>
+            <span><strong>Túnel:</strong> <span id="telemetry-tunnel">Cloudflare Tunnel (Port 443)</span></span>
           </div>
           <div class="telemetry-row">
             <span><strong>Almacenamiento:</strong> <span id="telemetry-storage">/mockhive/data (Persistente)</span></span>
@@ -1565,6 +1572,6 @@ sudo apt-get install cloudflared</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=1.2.1"></script>
+  <script src="app.js?v=1.2.2"></script>
 </body>
 </html>

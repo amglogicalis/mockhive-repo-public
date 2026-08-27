@@ -1227,19 +1227,20 @@ body {
 .connector-badge.pod, .connector-badge.code { background: #4c1d95; color: #c084fc; border: 1px solid #7c3aed; }
 
 /* HIVENODE SHELL MODAL STYLES */
-#modal-node-shell .modal-dialog {
-  max-width: 680px;
-  width: 92vw;
+.modal-shell-dialog {
+  max-width: 680px !important;
+  width: 94vw !important;
   box-sizing: border-box;
 }
 
 .shell-hub-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-height: 80vh;
+  gap: 12px;
+  max-height: calc(88vh - 70px);
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 16px 20px;
   box-sizing: border-box;
 }
 
@@ -1247,49 +1248,42 @@ body {
   background: #111111;
   border: 1px solid #222222;
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
 .shell-icon-col {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
 }
 
 .shell-info-col h4 {
-  margin: 0 0 4px 0;
-  font-size: 1.05rem;
+  margin: 0 0 2px 0;
+  font-size: 1rem;
   color: #ffffff;
 }
 
 .shell-info-col p {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
-.shell-options-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-@media (max-width: 620px) {
-  .shell-options-grid {
-    grid-template-columns: 1fr;
-  }
+.shell-options-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .shell-action-box {
   background: #0d0d0d;
-  border: 1px solid #262626;
+  border: 1px solid #242424;
   border-radius: 8px;
-  padding: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   box-sizing: border-box;
 }
 
@@ -1299,35 +1293,68 @@ body {
   gap: 10px;
 }
 
-.action-box-header h5 {
-  margin: 0 0 4px 0;
-  font-size: 0.92rem;
+.action-box-header .box-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.action-box-title-wrap h5 {
+  margin: 0 0 2px 0;
+  font-size: 0.88rem;
   color: #ffffff;
 }
 
-.action-box-header small {
+.action-box-title-wrap small {
   color: var(--text-muted);
-  font-size: 0.78rem;
-  line-height: 1.4;
+  font-size: 0.76rem;
+  line-height: 1.35;
   display: block;
 }
 
-.ssh-command-display {
+.ssh-command-box-modal {
   background: #000000;
   border: 1px solid #333333;
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
   box-sizing: border-box;
 }
 
-.ssh-command-display code {
-  font-size: 0.76rem;
+.ssh-cmd-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ssh-cmd-content code {
+  font-size: 0.78rem;
   word-break: break-all;
+  white-space: pre-wrap;
   color: #4ade80;
+  font-family: var(--font-mono);
+  display: block;
+}
+
+.ssh-cmd-actions {
+  flex-shrink: 0;
+}
+
+.ssh-password-modal-hint {
+  font-size: 0.78rem;
+  color: #aaaaaa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ssh-password-modal-hint code {
+  background: #181818;
+  border: 1px solid #333;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #ffffff;
   font-family: var(--font-mono);
 }
 
@@ -1335,12 +1362,12 @@ body {
   background: #0a0a0a;
   border: 1px solid #1f1f1f;
   border-radius: 6px;
-  padding: 10px 14px;
-  font-size: 0.78rem;
+  padding: 8px 12px;
+  font-size: 0.76rem;
   color: #888888;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .telemetry-row {
@@ -1349,5 +1376,13 @@ body {
   gap: 12px;
   flex-wrap: wrap;
 }
+
+.shell-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
 
 

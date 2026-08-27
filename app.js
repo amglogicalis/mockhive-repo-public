@@ -2048,8 +2048,10 @@ function openNodeShell(nodeId) {
   const relaunchBtn = document.getElementById('btn-relaunch-runner');
 
   document.getElementById('telemetry-os').innerText = node.osImage || 'Ubuntu 24.04 LTS';
-  document.getElementById('telemetry-tunnel').innerText = (node.tunnelProvider || 'Tmate') + ' Reverse Proxy';
+  document.getElementById('telemetry-tunnel').innerText = 'Cloudflare Tunnel (Port 443 HTTPS)';
   document.getElementById('telemetry-storage').innerText = (node.storage?.type || 'vault_persistent') + ' mounted at /mockhive/data';
+  const passVal = document.getElementById('modal-ssh-pass-val');
+  if (passVal) passVal.innerText = node.sshPassword || 'mockhive2026';
 
   if (isRunning) {
     if (statusTag) statusTag.innerText = '🟢 En Ejecución (Ubuntu 24.04)';
