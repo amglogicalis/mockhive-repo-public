@@ -2133,7 +2133,6 @@ function renderPodsList() {
         <div class="pod-code-preview-box"><code>${escapeHtml(codeSnippet)}</code></div>
 
         <div class="pod-card-actions">
-          <button class="btn-sm btn-primary" onclick="selectPodForTesting('${p.podId}')">⚡ Probar Invocación</button>
           <button class="btn-sm btn-secondary" onclick="openEditPodModal('${p.podId}')">⚙️ Editar</button>
           <button class="btn-sm btn-secondary" onclick="deletePod('${p.podId}')">🗑️ Eliminar</button>
         </div>
