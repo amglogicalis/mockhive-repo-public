@@ -537,6 +537,8 @@ function renderNodesList() {
   nodesList.forEach(n => {
     const isRunning = n.status === 'running';
     const isProvisioning = n.status === 'provisioning';
+    const hasValidSSH = isRunning && n.sshCommand && !n.sshCommand.includes('localhost') && !n.sshCommand.includes('(Web Shell');
+    const hasWebTerminal = isRunning && n.webCommand;
 
     let storageDesc = n.storage?.type || 'vault_persistent';
     if (n.storage?.type === 'vault_persistent') storageDesc = '📦 Vault (.tar.zst)';
@@ -558,16 +560,21 @@ function renderNodesList() {
           <div><strong>Storage:</strong> ${storageDesc}</div>
           <div><strong>Tunnel:</strong> ${n.tunnelProvider}</div>
         </div>
-        ${(isRunning && (n.sshCommand || n.webCommand)) ? `
+        ${(isRunning && (hasValidSSH || hasWebTerminal)) ? `
           <div class="ssh-box" style="display: flex; flex-direction: column; gap: 8px;">
-            ${n.sshCommand ? `
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                <code style="word-break: break-all;">${n.sshCommand}</code>
-                <button class="btn-sm btn-secondary" onclick="copySSHCommand('${n.sshCommand}')">Copiar SSH</button>
+            ${hasValidSSH ? `
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                  <code style="word-break: break-all; font-weight: 600;">${n.sshCommand}</code>
+                  <button class="btn-sm btn-secondary" onclick="copySSHCommand('${n.sshCommand}')">Copiar SSH</button>
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+                  🔑 <strong>Password SSH:</strong> <code>${n.sshPassword || 'mockhive2026'}</code>
+                </div>
               </div>
             ` : ''}
-            ${n.webCommand ? `
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
+            ${hasWebTerminal ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; ${hasValidSSH ? 'border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;' : ''}">
                 <span style="font-size: 0.8rem; color: #4ade80; display: flex; align-items: center; gap: 4px;">🌐 <strong>Web Terminal:</strong> Activa</span>
                 <a href="${n.webCommand}" target="_blank" class="btn-sm btn-primary" style="text-decoration: none;">🚀 Abrir en Navegador</a>
               </div>
@@ -575,7 +582,7 @@ function renderNodesList() {
           </div>
         ` : `
           <div class="ssh-pending-box">
-            <span>${isProvisioning ? '⚡ Lanzando runner en GitHub Actions y generando túneles...' : 'Servidor detenido. Pulsa "⚡ Iniciar Servidor" para despachar un runner real de GitHub Actions y generar los túneles.'}</span>
+            <span>${isProvisioning ? '⚡ Lanzando runner en GitHub Actions y conectando túneles...' : 'Servidor detenido. Pulsa "⚡ Iniciar Servidor" para despachar un runner real de GitHub Actions y generar los túneles.'}</span>
           </div>
         `}
         <div class="node-actions">
@@ -627,6 +634,7 @@ function handleCreateNode(e) {
   const s3Prefix = document.getElementById('s3-prefix')?.value || '';
 
   const tunnelProvider = document.getElementById('node-tunnel').value;
+  const sshPassword = document.getElementById('node-ssh-password')?.value.trim() || 'mockhive2026';
   const initScript = document.getElementById('node-init-script')?.value || '';
 
   const newNode = {
@@ -651,6 +659,7 @@ function handleCreateNode(e) {
       mountPath: '/mockhive/data' 
     },
     tunnelProvider,
+    sshPassword,
     initScript,
     status: 'stopped',
     sshCommand: null,
@@ -728,7 +737,8 @@ async function startNode(nodeId) {
         inputs: {
           node_id: node.nodeId,
           lifecycle_mode: node.lifecycleMode,
-          ttl_minutes: String(node.ttlMinutes && node.ttlMinutes > 0 ? node.ttlMinutes : 350)
+          ttl_minutes: String(node.ttlMinutes && node.ttlMinutes > 0 ? node.ttlMinutes : 350),
+          ssh_password: node.sshPassword || 'mockhive2026'
         }
       })
     });
@@ -738,7 +748,7 @@ async function startNode(nodeId) {
     }
 
     logTelemetry(`[Runner Launched] GitHub Actions workflow dispatched successfully. Polling live status...`);
-    showToast(`Runner lanzado. Esperando conexión SSH de Tmate...`);
+    showToast(`Runner lanzado. Esperando conexión SSH y Web Terminal...`);
 
     // 3. Poll status from GitHub with cache-busting every 3s
     let attempts = 0;
@@ -877,8 +887,9 @@ function deleteNode(nodeId) {
 
 function copySSHCommand(cmd) {
   if (!cmd) return;
-  navigator.clipboard.writeText(cmd);
-  showToast(`Comando SSH copiado: ${cmd}`);
+  const cleanCmd = cmd.replace(/\(.*?\)/g, '').trim();
+  navigator.clipboard.writeText(cleanCmd);
+  showToast(`Comando SSH copiado: ${cleanCmd}`);
 }
 
 function onLifecycleChange() {
@@ -2003,11 +2014,13 @@ function openNodeShell(nodeId) {
   if (isRunning) {
     if (statusTag) statusTag.innerText = '🟢 En Ejecución (Ubuntu 24.04)';
     if (statusIcon) statusIcon.innerText = '⚡';
-    if (desc) desc.innerText = 'Runner activo en GitHub Actions con servidor Tmate y almacenamiento persistente en /mockhive/data.';
+    if (desc) desc.innerText = 'Runner activo en GitHub Actions con Web Terminal HTTPS y almacenamiento persistente en /mockhive/data.';
     if (stoppedBox) stoppedBox.classList.add('hidden');
     if (activeActions) activeActions.classList.remove('hidden');
     if (relaunchBtn) relaunchBtn.style.display = 'inline-block';
-    document.getElementById('modal-ssh-cmd').innerText = node.sshCommand || 'ssh ...';
+    
+    const hasValidSSH = node.sshCommand && !node.sshCommand.includes('localhost') && !node.sshCommand.includes('(Web Shell');
+    document.getElementById('modal-ssh-cmd').innerText = hasValidSSH ? node.sshCommand : (node.webCommand ? 'Web Terminal HTTPS Activa' : 'Conectando túneles...');
   } else if (isProvisioning) {
     if (statusTag) statusTag.innerText = '⚡ Aprovisionando Runner...';
     if (statusIcon) statusIcon.innerText = '⏳';
@@ -2100,6 +2113,7 @@ function openEditModal(nodeId) {
   document.getElementById('edit-s3-prefix').value = node.storage?.s3Prefix || '';
 
   document.getElementById('edit-node-tunnel').value = node.tunnelProvider || 'tmate';
+  document.getElementById('edit-node-ssh-password').value = node.sshPassword || '';
   document.getElementById('edit-node-init-script').value = node.initScript || '';
 
   onEditLifecycleChange();
@@ -2162,6 +2176,7 @@ function handleSaveNodeEdit(e) {
     };
 
     node.tunnelProvider = document.getElementById('edit-node-tunnel').value;
+    node.sshPassword = document.getElementById('edit-node-ssh-password')?.value.trim() || 'mockhive2026';
     node.initScript = document.getElementById('edit-node-init-script').value;
 
     persistToGitHub();

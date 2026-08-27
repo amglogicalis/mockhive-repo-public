@@ -477,6 +477,12 @@
                 </div>
 
                 <div class="form-group">
+                  <label>Contraseña SSH / Root (Opcional)</label>
+                  <input type="password" id="node-ssh-password" class="input-field" placeholder="ej. MiPasswordSegura2026 (por defecto: mockhive2026)">
+                  <small class="field-hint">Contraseña para conectar como usuario <code>runner</code> por SSH o ejecutar <code>sudo</code>.</small>
+                </div>
+
+                <div class="form-group">
                   <label>Script de Inicialización (Init Script)</label>
                   <textarea id="node-init-script" class="input-field code-textarea" rows="3" placeholder="# Comandos para ejecutar al arrancar&#10;sudo apt update && sudo apt install -y git curl&#10;echo 'Node listo'"></textarea>
                 </div>
@@ -1264,6 +1270,12 @@
           </div>
 
           <div class="form-group">
+            <label>Contraseña SSH / Root (Opcional)</label>
+            <input type="password" id="edit-node-ssh-password" class="input-field" placeholder="ej. MiPasswordSegura2026 (por defecto: mockhive2026)">
+            <small class="field-hint">Contraseña para conectar como usuario <code>runner</code> por SSH o ejecutar <code>sudo</code>.</small>
+          </div>
+
+          <div class="form-group">
             <label>Script de Inicialización (Init Script)</label>
             <textarea id="edit-node-init-script" class="input-field code-textarea" rows="3" placeholder="# Comandos para ejecutar al arrancar"></textarea>
           </div>
@@ -1529,6 +1541,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1.1.8"></script>
+  <script src="app.js?v=1.1.9"></script>
 </body>
 </html>
