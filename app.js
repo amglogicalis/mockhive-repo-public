@@ -2177,28 +2177,40 @@ function renderGridJobs() {
       <div class="pod-card">
         <div class="pod-card-header">
           <div class="pod-card-title-wrap">
-            <span style="font-size: 1.2rem;">${icon}</span>
-            <div>
-              <h4>${j.name}</h4>
-              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${j.jobId}</span>
+            <span style="font-size: 1.3rem; line-height: 1;">${icon}</span>
+            <div style="min-width: 0; flex: 1;">
+              <h4 title="${escapeHtml(j.name)}">${escapeHtml(j.name)}</h4>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">${j.jobId}</span>
             </div>
           </div>
           <span class="status-tag success">COMPLETED</span>
         </div>
 
         <div class="pod-card-details">
-          <div><strong>Workers:</strong> <span class="badge-tag" style="padding: 2px 6px;">${workers} Matrix Runners</span></div>
-          <div><strong>Runtime:</strong> <span class="pod-runtime-badge ${runtimeClass}">${j.runtime || 'python3'}</span></div>
-          <div><strong>Estrategias:</strong> <span class="badge-tag">${partStrat}</span> <span class="badge-tag">${redStrat}</span></div>
-          <div><strong>Tiempo Consolidado:</strong> <span style="color: #4ade80; font-family: var(--font-mono);">${elapsed}s</span></div>
+          <div class="pod-card-detail-item">
+            <span class="pod-card-detail-label">Workers</span>
+            <div class="pod-card-detail-value"><span class="badge-tag" style="padding: 1px 6px;">${workers} Runners</span></div>
+          </div>
+          <div class="pod-card-detail-item">
+            <span class="pod-card-detail-label">Runtime</span>
+            <div class="pod-card-detail-value"><span class="pod-runtime-badge ${runtimeClass}">${j.runtime || 'python3'}</span></div>
+          </div>
+          <div class="pod-card-detail-item">
+            <span class="pod-card-detail-label">Estrategias</span>
+            <div class="pod-card-detail-value"><span class="badge-tag">${partStrat}</span> <span class="badge-tag">${redStrat}</span></div>
+          </div>
+          <div class="pod-card-detail-item">
+            <span class="pod-card-detail-label">Consolidación</span>
+            <div class="pod-card-detail-value"><span style="color: #4ade80; font-family: var(--font-mono); font-weight: 700;">${elapsed}s</span></div>
+          </div>
         </div>
 
         <div class="pod-code-preview-box"><code>Map: ${escapeHtml(j.mapSnippet || 'map_chunk(chunk_data)')}\nReduce: ${escapeHtml(j.reduceSnippet || 'reduce_results(mapped_outputs)')}</code></div>
 
         <div class="pod-card-actions">
-          <button class="btn-sm btn-primary" onclick="viewGridJobOutput('${j.jobId}')">🔍 Ver Output & Árbol</button>
-          <button class="btn-sm btn-secondary" onclick="redispatchGridJob('${j.jobId}')">🚀 Re-ejecutar</button>
-          <button class="btn-sm btn-secondary" onclick="deleteGridJob('${j.jobId}')">🗑️ Eliminar</button>
+          <button class="btn-sm btn-primary" onclick="viewGridJobOutput('${j.jobId}')" style="justify-content: center;">🔍 Ver Output</button>
+          <button class="btn-sm btn-secondary" onclick="redispatchGridJob('${j.jobId}')" style="justify-content: center;">🚀 Re-ejecutar</button>
+          <button class="btn-delete-icon" onclick="deleteGridJob('${j.jobId}')" title="Eliminar Job">🗑️</button>
         </div>
       </div>
     `;
@@ -2590,25 +2602,31 @@ function renderPodsList() {
       <div class="pod-card">
         <div class="pod-card-header">
           <div class="pod-card-title-wrap">
-            <span style="font-size: 1.2rem;">${icon}</span>
-            <div>
-              <h4>${p.name}</h4>
-              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${p.podId}</span>
+            <span style="font-size: 1.3rem; line-height: 1;">${icon}</span>
+            <div style="min-width: 0; flex: 1;">
+              <h4 title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</h4>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">${p.podId}</span>
             </div>
           </div>
           <span class="pod-runtime-badge ${runtimeClass}">${p.runtime || 'polyglot'}</span>
         </div>
 
         <div class="pod-card-details">
-          <div><strong>Entrypoint:</strong> <code>${entrypoint}()</code></div>
-          <div><strong>Versión:</strong> <span style="font-family: var(--font-mono); color: #ccc;">v${version}</span></div>
+          <div class="pod-card-detail-item">
+            <span class="pod-card-detail-label">Entrypoint</span>
+            <div class="pod-card-detail-value"><code>${entrypoint}()</code></div>
+          </div>
+          <div class="pod-card-detail-item">
+            <span class="pod-card-detail-label">Versión</span>
+            <div class="pod-card-detail-value"><span class="badge-tag" style="padding: 1px 6px;">v${version}</span></div>
+          </div>
         </div>
 
         <div class="pod-code-preview-box"><code>${escapeHtml(codeSnippet)}</code></div>
 
-        <div class="pod-card-actions">
-          <button class="btn-sm btn-secondary" onclick="openEditPodModal('${p.podId}')">⚙️ Editar</button>
-          <button class="btn-sm btn-secondary" onclick="deletePod('${p.podId}')">🗑️ Eliminar</button>
+        <div class="pod-card-actions two-col">
+          <button class="btn-sm btn-secondary" onclick="openEditPodModal('${p.podId}')" style="justify-content: center;">⚙️ Editar</button>
+          <button class="btn-sm btn-secondary" onclick="deletePod('${p.podId}')" style="justify-content: center; color: #ef4444;">🗑️ Eliminar</button>
         </div>
       </div>
     `;

@@ -1384,29 +1384,29 @@ body {
   margin-top: 4px;
 }
 
-/* POLLENPODS INVENTORY STYLES */
+/* INVENTORY & CARD SYSTEM (HIVEGRID, POLLENPODS & WAGGLES) */
 .pods-inventory-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
   margin-top: 12px;
 }
 
 .pod-card {
-  background: #0d0d0d;
-  border: 1px solid #222222;
+  background: #0b0b0b;
+  border: 1px solid #1f1f1f;
   border-radius: 8px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   transition: all 0.2s ease;
 }
 
 .pod-card:hover {
-  border-color: #444444;
-  background: #121212;
+  border-color: #383838;
+  background: #111111;
   transform: translateY(-1px);
 }
 
@@ -1414,28 +1414,35 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
 }
 
 .pod-card-title-wrap {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .pod-card-title-wrap h4 {
-  margin: 0;
-  font-size: 0.96rem;
+  margin: 0 0 3px 0;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pod-runtime-badge {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   padding: 2px 7px;
   border-radius: 4px;
   font-weight: 700;
   text-transform: uppercase;
   font-family: var(--font-mono);
+  letter-spacing: 0.02em;
 }
 
 .pod-runtime-badge.python3 { background: #1e3a5f; color: #60a5fa; border: 1px solid #2563eb; }
@@ -1446,27 +1453,47 @@ body {
 .pod-runtime-badge.bash { background: #27272a; color: #e4e4e7; border: 1px solid #52525b; }
 
 .pod-card-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+  background: #060606;
+  border: 1px solid #171717;
+  border-radius: 6px;
+  padding: 10px 12px;
 }
 
-.pod-card-details code {
+.pod-card-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pod-card-detail-label {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pod-card-detail-value {
   color: #ffffff;
-  font-family: var(--font-mono);
-  background: #181818;
-  padding: 1px 5px;
-  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pod-code-preview-box {
   background: #000000;
-  border: 1px solid #1e1e1e;
+  border: 1px solid #181818;
   border-radius: 6px;
   padding: 8px 10px;
-  font-size: 0.75rem;
+  font-size: 0.73rem;
   font-family: var(--font-mono);
   color: #a3a3a3;
   max-height: 80px;
@@ -1476,11 +1503,35 @@ body {
 }
 
 .pod-card-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
   gap: 8px;
-  flex-wrap: wrap;
-  border-top: 1px solid #1f1f1f;
-  padding-top: 10px;
+  align-items: center;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 12px;
+}
+
+.pod-card-actions.two-col {
+  grid-template-columns: 1fr 1fr;
+}
+
+.btn-delete-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-icon:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
 }
 
 /* ONBOARDING MANUAL & DEDICATED INDEPENDENT SCROLL CONTAINER */

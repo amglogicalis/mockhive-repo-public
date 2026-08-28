@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.2.7">
+  <link rel="stylesheet" href="style.css?v=1.3.0">
   <script>
     if (localStorage.getItem('mockhive_pat') || sessionStorage.getItem('mockhive_pat')) {
       document.documentElement.classList.add('is-authenticated-pre');
@@ -392,12 +392,12 @@
 
                 <div class="form-row" id="ttl-row">
                   <div class="form-group">
-                    <label>Tiempo de Vida (TTL Minutos)</label>
+                    <label>Tiempo de Vida (TTL Minutos) (Opcional)</label>
                     <input type="number" id="node-ttl" class="input-field" placeholder="0 para sin límite prefijado" min="0" max="350">
                     <small class="field-hint">Si se pone 0, no expira por tiempo prefijado y solo se dormirá por inactividad.</small>
                   </div>
                   <div class="form-group">
-                    <label>Apagado por Inactividad (Minutos)</label>
+                    <label>Apagado por Inactividad (Minutos) (Opcional)</label>
                     <input type="number" id="node-inactivity" class="input-field" placeholder="ej. 15" min="5" max="120">
                     <small class="field-hint">Tiempo sin tráfico ni conexiones SSH antes de pausarse.</small>
                   </div>
@@ -490,7 +490,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Script de Inicialización (Init Script)</label>
+                  <label>Script de Inicialización (Init Script) (Opcional)</label>
                   <textarea id="node-init-script" class="input-field code-textarea" rows="3" placeholder="# Comandos para ejecutar al arrancar&#10;sudo apt update && sudo apt install -y git curl&#10;echo 'Node listo'"></textarea>
                 </div>
 
@@ -546,13 +546,13 @@
                       </select>
                     </div>
                     <div class="form-group">
-                      <label>Timeout (Segundos)</label>
+                      <label>Timeout (Segundos) (Opcional)</label>
                       <input type="number" id="waggle-timeout" class="input-field" value="60" min="5" max="3600">
                     </div>
                   </div>
 
                   <div class="form-group">
-                    <label>Payload Inicial de Prueba (JSON Opcional)</label>
+                    <label>Payload Inicial de Prueba (JSON) (Opcional)</label>
                     <textarea id="waggle-initial-input" class="input-field code-textarea" rows="3" placeholder="{&#10;  &quot;orderId&quot;: 1042,&#10;  &quot;amount&quot;: 150&#10;}"></textarea>
                   </div>
 
@@ -847,7 +847,7 @@
               </div>
 
               <div class="form-group">
-                <label>Payload JSON de Entrada</label>
+                <label>Payload JSON de Entrada (Opcional)</label>
                 <textarea id="test-pod-payload" class="input-field code-textarea" rows="4" placeholder='{"items": ["alpha", "beta"], "multiplier": 2}'></textarea>
               </div>
 
@@ -1444,7 +1444,7 @@ sudo apt-get install cloudflared</code></pre>
               <input type="text" id="edit-pod-entrypoint" class="input-field" required>
             </div>
             <div class="form-group">
-              <label>Versión SemVer</label>
+              <label>Versión SemVer (Opcional)</label>
               <input type="text" id="edit-pod-version" class="input-field" value="1.0.0">
             </div>
           </div>
@@ -1760,6 +1760,6 @@ sudo apt-get install cloudflared</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=1.2.9"></script>
+  <script src="app.js?v=1.3.0"></script>
 </body>
 </html>
