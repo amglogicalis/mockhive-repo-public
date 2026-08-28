@@ -2170,6 +2170,8 @@ function renderGridJobs() {
     const runtimeClass = j.runtime || 'python3';
     const workers = j.workers || 4;
     const elapsed = j.elapsedSeconds || 12;
+    const partStrat = j.partitionStrategy === 'key_hash' ? 'Key-Hash 🔀' : j.partitionStrategy === 'range_index' ? 'Range 📊' : 'Auto ⚖️';
+    const redStrat = j.reductionStrategy === 'hierarchical_tree' ? 'Tree 🌳' : 'Root 🎯';
 
     return `
       <div class="pod-card">
@@ -2185,15 +2187,16 @@ function renderGridJobs() {
         </div>
 
         <div class="pod-card-details">
-          <div><strong>Workers Paralelos:</strong> <span class="badge-tag" style="padding: 2px 6px;">${workers} Matrix Runners</span></div>
+          <div><strong>Workers:</strong> <span class="badge-tag" style="padding: 2px 6px;">${workers} Matrix Runners</span></div>
           <div><strong>Runtime:</strong> <span class="pod-runtime-badge ${runtimeClass}">${j.runtime || 'python3'}</span></div>
+          <div><strong>Estrategias:</strong> <span class="badge-tag">${partStrat}</span> <span class="badge-tag">${redStrat}</span></div>
           <div><strong>Tiempo Consolidado:</strong> <span style="color: #4ade80; font-family: var(--font-mono);">${elapsed}s</span></div>
         </div>
 
         <div class="pod-code-preview-box"><code>Map: ${escapeHtml(j.mapSnippet || 'map_chunk(chunk_data)')}\nReduce: ${escapeHtml(j.reduceSnippet || 'reduce_results(mapped_outputs)')}</code></div>
 
         <div class="pod-card-actions">
-          <button class="btn-sm btn-primary" onclick="viewGridJobOutput('${j.jobId}')">🔍 Ver Output</button>
+          <button class="btn-sm btn-primary" onclick="viewGridJobOutput('${j.jobId}')">🔍 Ver Output & Árbol</button>
           <button class="btn-sm btn-secondary" onclick="redispatchGridJob('${j.jobId}')">🚀 Re-ejecutar</button>
           <button class="btn-sm btn-secondary" onclick="deleteGridJob('${j.jobId}')">🗑️ Eliminar</button>
         </div>
@@ -2209,55 +2212,149 @@ async function handleDispatchGrid(e) {
   const name = document.getElementById('grid-name').value.trim();
   const runtime = document.getElementById('grid-runtime').value;
   const workers = parseInt(document.getElementById('grid-workers').value, 10) || 4;
+  const partitionStrategy = document.getElementById('grid-partition-strategy')?.value || 'auto_balanced';
+  const reductionStrategy = document.getElementById('grid-reduction-strategy')?.value || 'single_root';
+  const dataSourceType = document.getElementById('grid-data-source-type')?.value || 'inline';
+  const customDeps = document.getElementById('grid-custom-deps')?.value.trim() || '';
+
   const mapCode = document.getElementById('grid-map-code').value.trim() || GRID_TEMPLATES[runtime]?.map || '';
   const reduceCode = document.getElementById('grid-reduce-code').value.trim() || GRID_TEMPLATES[runtime]?.reduce || '';
   const rawDataset = document.getElementById('grid-dataset').value.trim();
 
-  let dataset = [];
+  let rawData = [];
   if (rawDataset) {
     try {
-      dataset = JSON.parse(rawDataset);
+      rawData = JSON.parse(rawDataset);
     } catch (err) {
       showToast('Error de formato JSON en el Dataset de Entrada');
       return;
     }
   } else {
-    // Generate balanced chunks for workers
-    dataset = Array.from({ length: workers }, (_, i) => [
-      (i * 10) + 1, (i * 10) + 2, (i * 10) + 3, (i * 10) + 4
-    ]);
+    // Generate default sample data items
+    rawData = Array.from({ length: workers * 4 }, (_, i) => ({
+      id: `item_${i + 1}`,
+      category: ['orders', 'telemetry', 'analytics', 'audit'][i % 4],
+      value: (i + 1) * 10,
+      timestamp: Date.now() - (i * 1000)
+    }));
   }
 
-  // Simulated parallel map execution
-  const mappedPartitions = dataset.map((chunk, idx) => ({
+  // 1. Partition Data according to selected strategy
+  const partitions = Array.from({ length: workers }, () => []);
+  if (partitionStrategy === 'key_hash') {
+    rawData.forEach(item => {
+      const key = typeof item === 'object' && item !== null ? (item.category || item.id || JSON.stringify(item)) : String(item);
+      let hash = 0;
+      for (let i = 0; i < key.length; i++) {
+        hash = (hash << 5) - hash + key.charCodeAt(i);
+        hash |= 0;
+      }
+      partitions[Math.abs(hash) % workers].push(item);
+    });
+  } else if (partitionStrategy === 'range_index') {
+    const chunkSize = Math.ceil(rawData.length / workers);
+    for (let i = 0; i < workers; i++) {
+      partitions[i] = rawData.slice(i * chunkSize, (i + 1) * chunkSize);
+    }
+  } else {
+    // auto_balanced
+    rawData.forEach((item, idx) => {
+      partitions[idx % workers].push(item);
+    });
+  }
+
+  // 2. Simulated parallel Map execution
+  const mappedPartitions = partitions.map((chunk, idx) => ({
+    partitionIndex: idx + 1,
     workerIndex: idx + 1,
     runnerId: `gh-runner-matrix-${idx + 1}`,
-    inputChunk: chunk,
-    mappedOutput: Array.isArray(chunk) ? chunk.map(x => typeof x === 'number' ? x * 2 : x) : chunk,
-    elapsedMs: Math.floor(Math.random() * 40) + 15
+    status: 'success',
+    inputChunkSize: chunk.length,
+    inputSample: chunk.slice(0, 2),
+    mappedOutput: Array.isArray(chunk) 
+      ? chunk.map(x => typeof x === 'number' ? x * 2 : typeof x === 'object' ? { ...x, processed: true, mappedValue: (x.value || 1) * 2 } : String(x).toUpperCase())
+      : chunk,
+    elapsedMs: Math.floor(Math.random() * 35) + 12,
+    retries: 0
   }));
 
-  // Reduced output
-  const reducedOutput = {
-    totalPartitions: mappedPartitions.length,
-    workersActive: workers,
-    aggregatedResult: mappedPartitions.flatMap(p => p.mappedOutput),
-    summary: `Reduced ${dataset.flat().length} total items across ${workers} parallel workers`,
-    completedAt: new Date().toISOString()
-  };
+  // 3. Simulated Reduce Phase (Single Root or Hierarchical Tree)
+  const rawOutputs = mappedPartitions.map(p => p.mappedOutput);
+  let treeLevels = [];
+  let reducedOutput = {};
 
-  const elapsedSeconds = Math.max(6, Math.round(18 / Math.sqrt(workers)));
+  if (reductionStrategy === 'hierarchical_tree' && mappedPartitions.length > 2) {
+    const tier1Outputs = [];
+    for (let i = 0; i < mappedPartitions.length; i += 2) {
+      const pair = rawOutputs.slice(i, i + 2).flat();
+      tier1Outputs.push(pair);
+    }
+
+    treeLevels.push({
+      level: 1,
+      tierName: 'Tier-1 Worker Partitions',
+      inputPartitionCount: mappedPartitions.length,
+      outputCount: tier1Outputs.length,
+      intermediateResults: tier1Outputs,
+      elapsedMs: 22
+    });
+
+    const finalAggregated = tier1Outputs.flat();
+    treeLevels.push({
+      level: 2,
+      tierName: 'Tier-2 Root Master Aggregator',
+      inputPartitionCount: tier1Outputs.length,
+      outputCount: 1,
+      intermediateResults: [finalAggregated],
+      elapsedMs: 11
+    });
+
+    reducedOutput = {
+      strategy: 'hierarchical_tree',
+      totalItemsProcessed: rawData.length,
+      partitionsCount: mappedPartitions.length,
+      tiers: 2,
+      aggregatedResult: finalAggregated,
+      summary: `Tree reduction: ${rawData.length} items consolidated across ${workers} runners in 2 tiers.`
+    };
+  } else {
+    const finalAggregated = rawOutputs.flat();
+    treeLevels.push({
+      level: 1,
+      tierName: 'Single Root Aggregator',
+      inputPartitionCount: mappedPartitions.length,
+      outputCount: 1,
+      intermediateResults: [finalAggregated],
+      elapsedMs: 14
+    });
+
+    reducedOutput = {
+      strategy: 'single_root',
+      totalItemsProcessed: rawData.length,
+      partitionsCount: mappedPartitions.length,
+      aggregatedResult: finalAggregated,
+      summary: `Single root reduction: ${rawData.length} items consolidated across ${workers} matrix runners.`
+    };
+  }
+
+  const elapsedSeconds = Math.max(5, Math.round(18 / Math.sqrt(workers)));
 
   const job = {
     jobId: 'grid_' + Math.random().toString(36).slice(2, 8),
     name,
     runtime,
     workers,
+    partitionStrategy,
+    reductionStrategy,
+    dataSource: { type: dataSourceType, uri: dataSourceType === 'rolla_ball' ? 'rolla://ball_cluster_input' : 'inline://dataset' },
+    dataDestination: { type: 'vault', uri: '.mockhive-storage/results/' },
+    customDependencies: customDeps ? customDeps.split(',').map(d => d.trim()) : [],
     mapSnippet: mapCode.split('\n')[0] || 'map_chunk()',
     reduceSnippet: reduceCode.split('\n')[0] || 'reduce_results()',
     mapCode,
     reduceCode,
     mappedPartitions,
+    treeLevels,
     reducedOutput,
     status: 'completed',
     elapsedSeconds,
@@ -2273,8 +2370,8 @@ async function handleDispatchGrid(e) {
   document.getElementById('form-grid-job').reset();
   document.getElementById('grid-workers').value = '4';
 
-  showToast(`✓ Cluster Job '${name}' completado en ${elapsedSeconds}s con ${workers} workers`);
-  logTelemetry(`[HiveGrid Matrix] Job ${name} mapped & reduced across ${workers} runners in ${elapsedSeconds}s`);
+  showToast(`✓ Cluster Job '${name}' completado en ${elapsedSeconds}s (${partitionStrategy}, ${reductionStrategy})`);
+  logTelemetry(`[HiveGrid Matrix] ${name} executed with ${workers} runners (${partitionStrategy} ➔ ${reductionStrategy}) in ${elapsedSeconds}s`);
 }
 
 function viewGridJobOutput(jobId) {
@@ -2287,11 +2384,40 @@ function viewGridJobOutput(jobId) {
   document.getElementById('grid-modal-runtime').innerText = job.runtime || 'python3';
   document.getElementById('grid-modal-elapsed').innerText = `${job.elapsedSeconds}s`;
 
+  // Telemetry Strategy Badges
+  const partEl = document.getElementById('grid-modal-partition-strategy');
+  if (partEl) partEl.innerText = job.partitionStrategy || 'auto_balanced';
+  const redEl = document.getElementById('grid-modal-reduction-strategy');
+  if (redEl) redEl.innerText = job.reductionStrategy || 'single_root';
+  const srcEl = document.getElementById('grid-modal-data-source');
+  if (srcEl) srcEl.innerText = `${job.dataSource?.type || 'inline'} (${job.dataSource?.uri || '-'})`;
+
+  // Tree Levels View
+  const treeContainer = document.getElementById('grid-modal-tree-levels');
+  if (treeContainer) {
+    if (job.treeLevels && job.treeLevels.length > 0) {
+      treeContainer.innerHTML = job.treeLevels.map(lvl => `
+        <div style="background: #0d0d0d; border: 1px solid #222; border-radius: 6px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span class="badge-tag" style="background: #1e3a5f; color: #60a5fa; border: 1px solid #2563eb; margin-right: 8px;">Nivel ${lvl.level}</span>
+            <strong style="color: #fff; font-size: 0.85rem;">${lvl.tierName}</strong>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">
+            ${lvl.inputPartitionCount} Particiones In ➔ ${lvl.outputCount} Out • <span style="color: #4ade80;">${lvl.elapsedMs}ms</span>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      treeContainer.innerHTML = '<small style="color: var(--text-muted);">Reducción directa Single Root (1 Nivel)</small>';
+    }
+  }
+
+  // Partitions Preview
   const partitionsBox = document.getElementById('grid-modal-partitions-preview');
   if (partitionsBox) {
     partitionsBox.innerHTML = (job.mappedPartitions || []).map(p => `
       <div style="margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dashed #222;">
-        <strong>Worker #${p.workerIndex} (${p.runnerId}):</strong> <code>Input: ${JSON.stringify(p.inputChunk)} ➔ Mapped: ${JSON.stringify(p.mappedOutput)}</code>
+        <strong>Worker #${p.workerIndex} (${p.runnerId}):</strong> <code>Partición: ${p.inputChunkSize || 0} items ➔ Mapped: ${JSON.stringify(p.mappedOutput)}</code>
       </div>
     `).join('') || '<code>Particiones procesadas en runner</code>';
   }
@@ -2322,6 +2448,9 @@ function redispatchGridJob(jobId) {
   document.getElementById('grid-name').value = `${job.name}-re-run`;
   document.getElementById('grid-runtime').value = job.runtime || 'python3';
   document.getElementById('grid-workers').value = job.workers || 4;
+  if (document.getElementById('grid-partition-strategy')) document.getElementById('grid-partition-strategy').value = job.partitionStrategy || 'auto_balanced';
+  if (document.getElementById('grid-reduction-strategy')) document.getElementById('grid-reduction-strategy').value = job.reductionStrategy || 'single_root';
+  if (document.getElementById('grid-custom-deps')) document.getElementById('grid-custom-deps').value = (job.customDependencies || []).join(', ');
   document.getElementById('grid-map-code').value = job.mapCode || '';
   document.getElementById('grid-reduce-code').value = job.reduceCode || '';
   showToast(`Parámetros de '${job.name}' cargados en el despachador`);

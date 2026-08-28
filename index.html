@@ -923,6 +923,41 @@
 
               <div class="form-row">
                 <div class="form-group">
+                  <label>Estrategia de Particionamiento (Sharding)</label>
+                  <select id="grid-partition-strategy" class="input-field">
+                    <option value="auto_balanced">Auto-Balanced (Balanceo Uniforme)</option>
+                    <option value="key_hash">Key-Hash Partitioning (Agrupación Group-By)</option>
+                    <option value="range_index">Range-Index (Partición por Bloques)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Estrategia de Reducción</label>
+                  <select id="grid-reduction-strategy" class="input-field">
+                    <option value="single_root">Single Root Aggregator (Directo)</option>
+                    <option value="hierarchical_tree">Hierarchical Tree Reduce (Árbol Multinivel O(log N))</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Origen de Datos (Data Lake I/O)</label>
+                  <select id="grid-data-source-type" class="input-field">
+                    <option value="inline">Payload JSON Inline / Memoria</option>
+                    <option value="rolla_ball">Rolla Ball (Almacenamiento Inmutable)</option>
+                    <option value="s3">AWS S3 / Cloudflare R2 Bucket</option>
+                    <option value="vault">GitHub Storage Vault (.mockhive-storage)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Dependencias & Paquetes On-the-Fly (Opcional, separados por comas)</label>
+                <input type="text" id="grid-custom-deps" class="input-field" placeholder="ej. numpy, pandas, scikit-learn o axios, lodash">
+                <small class="field-hint">Se instalarán automáticamente en cada runner de la matriz antes de iniciar el mapeo.</small>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <label style="margin: 0;">Función Map (Worker)</label>
                     <button type="button" class="btn-sm btn-secondary" onclick="insertGridTemplate('map')" style="font-size: 0.75rem;">📋 Insertar Plantilla</button>
@@ -942,7 +977,7 @@
               <div class="form-group">
                 <label>Dataset / Chunks de Entrada (JSON Array Opcional)</label>
                 <textarea id="grid-dataset" class="input-field code-textarea" rows="3" placeholder='[ [1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12] ]'></textarea>
-                <small class="field-hint">Si se deja vacío, el cluster generará automáticamente particiones de datos balanceadas entre los workers.</small>
+                <small class="field-hint">Si se deja vacío, el cluster generará automáticamente particiones balanceadas entre los workers.</small>
               </div>
 
               <button type="submit" class="btn btn-primary btn-block">🚀 Despachar Cluster Job en Matriz de Runners</button>
@@ -1442,8 +1477,18 @@ sudo apt-get install cloudflared</code></pre>
               <span><strong>Job ID:</strong> <code id="grid-modal-job-id">-</code></span>
               <span><strong>Workers:</strong> <span id="grid-modal-workers">-</span></span>
               <span><strong>Runtime:</strong> <span id="grid-modal-runtime">-</span></span>
-              <span><strong>Tiempo de Ejecución:</strong> <span id="grid-modal-elapsed">-</span></span>
+              <span><strong>Tiempo:</strong> <span id="grid-modal-elapsed">-</span></span>
             </div>
+            <div class="telemetry-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #222;">
+              <span><strong>Particionamiento:</strong> <span id="grid-modal-partition-strategy" class="badge-tag">-</span></span>
+              <span><strong>Reducción:</strong> <span id="grid-modal-reduction-strategy" class="badge-tag">-</span></span>
+              <span><strong>Data Source:</strong> <span id="grid-modal-data-source">-</span></span>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 6px; display: block;">Árbol de Reducción Jerárquica (Tree Levels):</label>
+            <div id="grid-modal-tree-levels" style="display: flex; flex-direction: column; gap: 8px;"></div>
           </div>
 
           <div>
@@ -1715,6 +1760,6 @@ sudo apt-get install cloudflared</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=1.2.8"></script>
+  <script src="app.js?v=1.2.9"></script>
 </body>
 </html>
