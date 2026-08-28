@@ -86,28 +86,52 @@
 
 ## 📦 Instalación y Puesta en Marcha
 
-### 1. Instalación Global del CLI:
+### 1. Instalación Global del CLI (Recomendada):
+Instala los binarios globales `mockhive` y `terra-mockhive` con tu gestor de paquetes favorito:
+
 ```bash
+# Con NPM:
 npm install -g terra-mockhive
+
+# Con PNPM:
+pnpm add -g terra-mockhive
+
+# Con Yarn:
+yarn global add terra-mockhive
 ```
 
-### 2. Inicialización del Entorno Local:
+### 2. Ejecución Instantánea sin Instalación con `npx`:
+Puedes ejecutar cualquier comando o lanzar la consola directamente sin instalar nada:
+```bash
+# Iniciar la Consola Web local:
+npx terra-mockhive console
+
+# Ver ayuda y comandos:
+npx terra-mockhive --help
+```
+
+### 3. Instalación como Dependencia en tu Proyecto (SDK TypeScript / Node.js):
+```bash
+npm install terra-mockhive
+```
+
+### 4. Inicialización del Entorno Local:
 ```bash
 mockhive init
 ```
 
-### 3. Levantar la Consola Web Local:
+### 5. Levantar la Consola Web Local (MockHive Studio):
 ```bash
-# Puerto por defecto (7440)
+# Puerto por defecto (7440):
 mockhive console
 
-# O en un puerto personalizado con cualquiera de sus aliases
-mockhive console --port 8080
+# En un puerto y host personalizado con cualquiera de sus aliases:
+mockhive console --port 8080 --host 0.0.0.0
 mockhive serve --port 8080
 mockhive studio --port 8080
 ```
 
-### 4. Uso Programático con TypeScript / ES Modules:
+### 6. Uso Programático con TypeScript / ES Modules:
 ```typescript
 import { MockHive } from 'terra-mockhive';
 
@@ -117,9 +141,19 @@ const hive = new MockHive({
 
 await hive.init();
 
-// Listar servidores virtuales
+// Listar servidores virtuales registrados
 const nodes = await hive.listNodes();
 console.log(`Servidores activos: ${nodes.length}`);
+
+// Despachar un job en cluster paralelo Map-Reduce
+const job = await hive.dispatchGridJob({
+  name: 'Vector-Batch-Processing',
+  workers: 4,
+  runtime: 'python3',
+  partitionStrategy: 'key_hash',
+  reductionStrategy: 'hierarchical_tree'
+});
+console.log(`Job despachado con ID: ${job.jobId}`);
 ```
 
 ---
