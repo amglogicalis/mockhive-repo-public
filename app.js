@@ -384,16 +384,45 @@ function loadDefaultDeployedResources() {
     {
       jobId: 'grid_embedding_matrix',
       name: 'Massive-Image-Vector-Matrix',
+      runtime: 'python3',
       workers: 8,
       status: 'completed',
-      elapsedSeconds: 14
+      elapsedSeconds: 14,
+      mapSnippet: 'def map_chunk(chunk_data): return [emb(x) for x in chunk_data]',
+      reduceSnippet: 'def reduce_results(mapped): return consolidate_vectors(mapped)',
+      mappedPartitions: [
+        { workerIndex: 1, runnerId: 'gh-runner-matrix-1', inputChunk: [1, 2, 3], mappedOutput: [2, 4, 6], elapsedMs: 22 },
+        { workerIndex: 2, runnerId: 'gh-runner-matrix-2', inputChunk: [4, 5, 6], mappedOutput: [8, 10, 12], elapsedMs: 25 },
+        { workerIndex: 3, runnerId: 'gh-runner-matrix-3', inputChunk: [7, 8, 9], mappedOutput: [14, 16, 18], elapsedMs: 20 },
+        { workerIndex: 4, runnerId: 'gh-runner-matrix-4', inputChunk: [10, 11, 12], mappedOutput: [20, 22, 24], elapsedMs: 24 }
+      ],
+      reducedOutput: {
+        totalPartitions: 4,
+        workersActive: 8,
+        aggregatedResult: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24],
+        summary: 'Reduced 12 items across 8 parallel GitHub Actions runners'
+      },
+      createdAt: new Date().toISOString()
     },
     {
       jobId: 'grid_log_analytics',
       name: 'Distributed-Log-Parser',
+      runtime: 'rust',
       workers: 4,
       status: 'completed',
-      elapsedSeconds: 9
+      elapsedSeconds: 9,
+      mapSnippet: 'pub fn map_chunk(logs: &[String]) -> Vec<ParsedEvent>',
+      reduceSnippet: 'pub fn reduce_results(events: Vec<Vec<ParsedEvent>>) -> Summary',
+      mappedPartitions: [
+        { workerIndex: 1, runnerId: 'gh-runner-matrix-1', inputChunk: ['log_a', 'log_b'], mappedOutput: ['ok', 'ok'], elapsedMs: 14 },
+        { workerIndex: 2, runnerId: 'gh-runner-matrix-2', inputChunk: ['log_c', 'log_d'], mappedOutput: ['warn', 'ok'], elapsedMs: 16 }
+      ],
+      reducedOutput: {
+        totalPartitions: 2,
+        workersActive: 4,
+        aggregatedResult: { parsedTotal: 4000, errorCount: 12, status: 'reduced_clean' }
+      },
+      createdAt: new Date().toISOString()
     }
   ];
 
@@ -2009,28 +2038,308 @@ async function executeWaggleDAG(waggle, initialInput) {
   return contextData;
 }
 
-function handleDispatchGrid(e) {
+// ─── HIVEGRID (DISTRIBUTED MAP-REDUCE CLUSTER) ──────────────────────────────
+
+const GRID_TEMPLATES = {
+  python3: {
+    map: `def map_chunk(chunk_data):
+    # Worker transformation on partition
+    return [item * 2 for item in chunk_data]`,
+    reduce: `def reduce_results(mapped_outputs):
+    # Aggregator consolidation
+    return sum(mapped_outputs, [])`
+  },
+  nodejs20: {
+    map: `export function mapChunk(chunkData) {
+    // Worker partition transformation
+    return chunkData.map(item => item * 2);
+}`,
+    reduce: `export function reduceResults(mappedOutputs) {
+    // Aggregator consolidation
+    return mappedOutputs.flat();
+}`
+  },
+  rust: {
+    map: `// Cargo Rust Map Worker Partition
+pub fn map_chunk(chunk: &[i64]) -> Vec<i64> {
+    chunk.iter().map(|&x| x * 2).collect()
+}`,
+    reduce: `// Cargo Rust Aggregator Reduction
+pub fn reduce_results(outputs: Vec<Vec<i64>>) -> Vec<i64> {
+    outputs.into_iter().flatten().collect()
+}`
+  },
+  go: {
+    map: `package main
+
+func MapChunk(chunk []int) []int {
+    result := make([]int, len(chunk))
+    for i, v := range chunk { result[i] = v * 2 }
+    return result
+}`,
+    reduce: `package main
+
+func ReduceResults(mapped [][]int) []int {
+    var out []int
+    for _, arr := range mapped { out = append(out, arr...) }
+    return out
+}`
+  },
+  wasm: {
+    map: `// Sandboxed WASM Matrix Worker
+export function mapChunk(chunk) {
+    return chunk.map(x => x * 2);
+}`,
+    reduce: `// Sandboxed WASM Matrix Reducer
+export function reduceResults(mapped) {
+    return mapped.flat();
+}`
+  },
+  bash: {
+    map: `#!/usr/bin/env bash
+# Process chunk from stdin
+while read -r line; do
+  echo "$((line * 2))"
+done`,
+    reduce: `#!/usr/bin/env bash
+# Consolidate all mapped output lines
+cat | sort -n`
+  }
+};
+
+function onGridRuntimeChange() {
+  const runtime = document.getElementById('grid-runtime').value;
+  const mapEl = document.getElementById('grid-map-code');
+  const redEl = document.getElementById('grid-reduce-code');
+  if (mapEl && (!mapEl.value.trim() || mapEl.dataset.isTemplate === 'true')) {
+    mapEl.value = GRID_TEMPLATES[runtime]?.map || '';
+    mapEl.dataset.isTemplate = 'true';
+  }
+  if (redEl && (!redEl.value.trim() || redEl.dataset.isTemplate === 'true')) {
+    redEl.value = GRID_TEMPLATES[runtime]?.reduce || '';
+    redEl.dataset.isTemplate = 'true';
+  }
+}
+
+function insertGridTemplate(type) {
+  const runtime = document.getElementById('grid-runtime')?.value || 'python3';
+  if (type === 'map') {
+    const el = document.getElementById('grid-map-code');
+    if (el) {
+      el.value = GRID_TEMPLATES[runtime]?.map || '';
+      el.dataset.isTemplate = 'true';
+      showToast(`✓ Plantilla Map (${runtime}) insertada`);
+    }
+  } else if (type === 'reduce') {
+    const el = document.getElementById('grid-reduce-code');
+    if (el) {
+      el.value = GRID_TEMPLATES[runtime]?.reduce || '';
+      el.dataset.isTemplate = 'true';
+      showToast(`✓ Plantilla Reduce (${runtime}) insertada`);
+    }
+  }
+}
+
+function renderGridJobs() {
+  const container = document.getElementById('grid-jobs-grid');
+  const countBadge = document.getElementById('grid-count-badge');
+  if (countBadge) countBadge.innerText = `${gridJobsList.length} Job${gridJobsList.length === 1 ? '' : 's'}`;
+  if (!container) return;
+
+  if (gridJobsList.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; background: #080808; border: 1px dashed #222; border-radius: 8px; padding: 24px; text-align: center; color: var(--text-muted);">
+        <p style="margin-bottom: 8px;">🕸️ No hay Cluster Jobs registrados en HiveGrid.</p>
+        <small>Despacha una matriz paralela de computación Map-Reduce utilizando el formulario inferior.</small>
+      </div>
+    `;
+    return;
+  }
+
+  const RUNTIME_ICONS = {
+    python3: '🐍',
+    nodejs20: '⚡',
+    rust: '🦀',
+    go: '🦫',
+    wasm: '🌐',
+    bash: '💻'
+  };
+
+  container.innerHTML = gridJobsList.map(j => {
+    const icon = RUNTIME_ICONS[j.runtime] || '🕸️';
+    const runtimeClass = j.runtime || 'python3';
+    const workers = j.workers || 4;
+    const elapsed = j.elapsedSeconds || 12;
+
+    return `
+      <div class="pod-card">
+        <div class="pod-card-header">
+          <div class="pod-card-title-wrap">
+            <span style="font-size: 1.2rem;">${icon}</span>
+            <div>
+              <h4>${j.name}</h4>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${j.jobId}</span>
+            </div>
+          </div>
+          <span class="status-tag success">COMPLETED</span>
+        </div>
+
+        <div class="pod-card-details">
+          <div><strong>Workers Paralelos:</strong> <span class="badge-tag" style="padding: 2px 6px;">${workers} Matrix Runners</span></div>
+          <div><strong>Runtime:</strong> <span class="pod-runtime-badge ${runtimeClass}">${j.runtime || 'python3'}</span></div>
+          <div><strong>Tiempo Consolidado:</strong> <span style="color: #4ade80; font-family: var(--font-mono);">${elapsed}s</span></div>
+        </div>
+
+        <div class="pod-code-preview-box"><code>Map: ${escapeHtml(j.mapSnippet || 'map_chunk(chunk_data)')}\nReduce: ${escapeHtml(j.reduceSnippet || 'reduce_results(mapped_outputs)')}</code></div>
+
+        <div class="pod-card-actions">
+          <button class="btn-sm btn-primary" onclick="viewGridJobOutput('${j.jobId}')">🔍 Ver Output</button>
+          <button class="btn-sm btn-secondary" onclick="redispatchGridJob('${j.jobId}')">🚀 Re-ejecutar</button>
+          <button class="btn-sm btn-secondary" onclick="deleteGridJob('${j.jobId}')">🗑️ Eliminar</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleDispatchGrid(e) {
   e.preventDefault();
   if (!currentUser) { showAuthGate(); return; }
 
-  const name = document.getElementById('grid-name').value;
-  const workers = parseInt(document.getElementById('grid-workers').value, 10);
+  const name = document.getElementById('grid-name').value.trim();
+  const runtime = document.getElementById('grid-runtime').value;
+  const workers = parseInt(document.getElementById('grid-workers').value, 10) || 4;
+  const mapCode = document.getElementById('grid-map-code').value.trim() || GRID_TEMPLATES[runtime]?.map || '';
+  const reduceCode = document.getElementById('grid-reduce-code').value.trim() || GRID_TEMPLATES[runtime]?.reduce || '';
+  const rawDataset = document.getElementById('grid-dataset').value.trim();
+
+  let dataset = [];
+  if (rawDataset) {
+    try {
+      dataset = JSON.parse(rawDataset);
+    } catch (err) {
+      showToast('Error de formato JSON en el Dataset de Entrada');
+      return;
+    }
+  } else {
+    // Generate balanced chunks for workers
+    dataset = Array.from({ length: workers }, (_, i) => [
+      (i * 10) + 1, (i * 10) + 2, (i * 10) + 3, (i * 10) + 4
+    ]);
+  }
+
+  // Simulated parallel map execution
+  const mappedPartitions = dataset.map((chunk, idx) => ({
+    workerIndex: idx + 1,
+    runnerId: `gh-runner-matrix-${idx + 1}`,
+    inputChunk: chunk,
+    mappedOutput: Array.isArray(chunk) ? chunk.map(x => typeof x === 'number' ? x * 2 : x) : chunk,
+    elapsedMs: Math.floor(Math.random() * 40) + 15
+  }));
+
+  // Reduced output
+  const reducedOutput = {
+    totalPartitions: mappedPartitions.length,
+    workersActive: workers,
+    aggregatedResult: mappedPartitions.flatMap(p => p.mappedOutput),
+    summary: `Reduced ${dataset.flat().length} total items across ${workers} parallel workers`,
+    completedAt: new Date().toISOString()
+  };
+
+  const elapsedSeconds = Math.max(6, Math.round(18 / Math.sqrt(workers)));
 
   const job = {
     jobId: 'grid_' + Math.random().toString(36).slice(2, 8),
     name,
+    runtime,
     workers,
+    mapSnippet: mapCode.split('\n')[0] || 'map_chunk()',
+    reduceSnippet: reduceCode.split('\n')[0] || 'reduce_results()',
+    mapCode,
+    reduceCode,
+    mappedPartitions,
+    reducedOutput,
     status: 'completed',
-    elapsedSeconds: 12,
+    elapsedSeconds,
     createdAt: new Date().toISOString()
   };
 
-  gridJobsList.push(job);
+  gridJobsList.unshift(job);
   persistToGitHub();
   renderKPIs();
   renderGridJobs();
-  showToast(`Job '${name}' completado en matriz de ${workers} workers`);
-  logTelemetry(`[HiveGrid Job] ${name} completed across ${workers} parallel workers in 12s`);
+
+  // Reset form
+  document.getElementById('form-grid-job').reset();
+  document.getElementById('grid-workers').value = '4';
+
+  showToast(`✓ Cluster Job '${name}' completado en ${elapsedSeconds}s con ${workers} workers`);
+  logTelemetry(`[HiveGrid Matrix] Job ${name} mapped & reduced across ${workers} runners in ${elapsedSeconds}s`);
+}
+
+function viewGridJobOutput(jobId) {
+  const job = gridJobsList.find(j => j.jobId === jobId);
+  if (!job) return;
+
+  document.getElementById('grid-modal-title').innerText = `🕸️ Cluster: ${job.name}`;
+  document.getElementById('grid-modal-job-id').innerText = job.jobId;
+  document.getElementById('grid-modal-workers').innerText = `${job.workers} Matrix Runners`;
+  document.getElementById('grid-modal-runtime').innerText = job.runtime || 'python3';
+  document.getElementById('grid-modal-elapsed').innerText = `${job.elapsedSeconds}s`;
+
+  const partitionsBox = document.getElementById('grid-modal-partitions-preview');
+  if (partitionsBox) {
+    partitionsBox.innerHTML = (job.mappedPartitions || []).map(p => `
+      <div style="margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dashed #222;">
+        <strong>Worker #${p.workerIndex} (${p.runnerId}):</strong> <code>Input: ${JSON.stringify(p.inputChunk)} ➔ Mapped: ${JSON.stringify(p.mappedOutput)}</code>
+      </div>
+    `).join('') || '<code>Particiones procesadas en runner</code>';
+  }
+
+  const jsonPre = document.getElementById('grid-modal-json-output');
+  if (jsonPre) {
+    jsonPre.innerText = JSON.stringify(job.reducedOutput || { status: "completed" }, null, 2);
+  }
+
+  const modal = document.getElementById('modal-view-grid-job');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+}
+
+function closeViewGridJobModal() {
+  const modal = document.getElementById('modal-view-grid-job');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+}
+
+function redispatchGridJob(jobId) {
+  const job = gridJobsList.find(j => j.jobId === jobId);
+  if (!job) return;
+  document.getElementById('grid-name').value = `${job.name}-re-run`;
+  document.getElementById('grid-runtime').value = job.runtime || 'python3';
+  document.getElementById('grid-workers').value = job.workers || 4;
+  document.getElementById('grid-map-code').value = job.mapCode || '';
+  document.getElementById('grid-reduce-code').value = job.reduceCode || '';
+  showToast(`Parámetros de '${job.name}' cargados en el despachador`);
+  document.getElementById('form-grid-job').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function deleteGridJob(jobId) {
+  const job = gridJobsList.find(j => j.jobId === jobId);
+  if (!job) return;
+
+  showConfirm('¿Eliminar Cluster Job?', `¿Estás seguro de eliminar el registro de '${job.name}'?`, () => {
+    gridJobsList = gridJobsList.filter(j => j.jobId !== jobId);
+    persistToGitHub();
+    renderKPIs();
+    renderGridJobs();
+    showToast(`Job '${job.name}' eliminado.`);
+    logTelemetry(`[HiveGrid Job Deleted] ${jobId} removed.`);
+  });
 }
 
 // ─── POLLENPODS (SERVERLESS MICRO-VMS) ──────────────────────────────────────
@@ -2653,3 +2962,12 @@ window.clearExecLogs = clearExecLogs;
 window.triggerWaggleExecution = triggerWaggleExecution;
 window.handleBackdropClick = handleBackdropClick;
 window.closeAnyModal = closeAnyModal;
+
+window.handleDispatchGrid = handleDispatchGrid;
+window.renderGridJobs = renderGridJobs;
+window.onGridRuntimeChange = onGridRuntimeChange;
+window.insertGridTemplate = insertGridTemplate;
+window.viewGridJobOutput = viewGridJobOutput;
+window.closeViewGridJobModal = closeViewGridJobModal;
+window.redispatchGridJob = redispatchGridJob;
+window.deleteGridJob = deleteGridJob;
