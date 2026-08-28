@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.3.0">
+  <link rel="stylesheet" href="style.css?v=1.3.1">
   <script>
     if (localStorage.getItem('mockhive_pat') || sessionStorage.getItem('mockhive_pat')) {
       document.documentElement.classList.add('is-authenticated-pre');
@@ -239,23 +239,23 @@
         </button>
         <button class="nav-item" onclick="switchTab('nodes')">
           <span class="nav-icon">🏰</span>
-          <span class="nav-label">HiveNodes (EC2)</span>
+          <span class="nav-label">HiveNodes</span>
         </button>
         <button class="nav-item" onclick="switchTab('waggles')">
           <span class="nav-icon">🐝</span>
-          <span class="nav-label">Waggles (Step Functions)</span>
+          <span class="nav-label">Waggles</span>
         </button>
         <button class="nav-item" onclick="switchTab('pods')">
           <span class="nav-icon">🌸</span>
-          <span class="nav-label">PollenPods (Micro-VMs)</span>
+          <span class="nav-label">PollenPods</span>
         </button>
         <button class="nav-item" onclick="switchTab('grid')">
           <span class="nav-icon">🕸️</span>
-          <span class="nav-label">HiveGrid (Map-Reduce)</span>
+          <span class="nav-label">HiveGrid</span>
         </button>
         <button class="nav-item" onclick="switchTab('onboarding')">
           <span class="nav-icon">📖</span>
-          <span class="nav-label">Onboarding & Manual</span>
+          <span class="nav-label">Guía & Documentación</span>
         </button>
       </nav>
 
@@ -357,8 +357,8 @@
           <!-- Left: Provision Form -->
           <div class="card">
             <div class="card-header">
-              <h3>🏰 Provisionar Servidor HiveNode (EC2)</h3>
-              <span class="badge-tag">GitHub Actions Runner</span>
+              <h3>🏰 Aprovisionar Servidor HiveNode</h3>
+              <span class="badge-tag">Ubuntu 24.04 LTS</span>
             </div>
             <div class="card-body">
               <form id="form-create-node" onsubmit="handleCreateNode(event)">
@@ -527,7 +527,7 @@
             <!-- Left: State Machine Designer -->
             <div class="card">
               <div class="card-header">
-                <h3>🐝 Diseñador de Step Functions (Waggles)</h3>
+                <h3>🐝 Diseñador de Waggles</h3>
                 <span class="badge-tag">State Machine DAG</span>
               </div>
               <div class="card-body">
@@ -773,7 +773,7 @@
         <div class="card" style="margin-bottom: 20px;">
           <div class="card-header">
             <div style="display: flex; align-items: center; gap: 10px;">
-              <h3>🌸 Inventario de PollenPods (Micro-VMs)</h3>
+              <h3>🌸 Inventario de PollenPods</h3>
               <span class="badge-tag" id="pods-count-badge">0 Pods</span>
             </div>
             <span class="badge-tag">Polyglot Serverless Engine</span>
@@ -791,7 +791,7 @@
           <!-- Left: Pod Creator -->
           <div class="card">
             <div class="card-header">
-              <h3>📦 Crear Nueva Micro-VM (PollenPod)</h3>
+              <h3>📦 Crear Nuevo PollenPod</h3>
               <span class="badge-tag">Compilación In-Memory</span>
             </div>
             <div class="card-body">
@@ -986,168 +986,312 @@
         </div>
       </section>
 
-      <!-- TAB: ONBOARDING & MANUAL -->
+      <!-- TAB: ONBOARDING & GUÍA COMPLETA -->
       <section id="tab-onboarding" class="tab-pane">
         <div class="onboarding-layout">
           <!-- Fast Access Sticky Navigator -->
           <div class="fast-nav-card">
-            <h4>⚡ Acceso Rápido</h4>
+            <h4>⚡ Índice de la Guía</h4>
             <nav class="fast-nav-menu">
               <a href="#guide-overview" class="fast-nav-item">🌟 Visión General $0</a>
-              <a href="#guide-hivenodes" class="fast-nav-item">🏰 HiveNodes (EC2 & SSH)</a>
-              <a href="#guide-247" class="fast-nav-item">⚠️ Modo 24/7 & ToS Safety</a>
-              <a href="#guide-waggles" class="fast-nav-item">🐝 Waggles (Step Functions)</a>
-              <a href="#guide-pods" class="fast-nav-item">🌸 PollenPods (Micro-VMs)</a>
-              <a href="#guide-grid" class="fast-nav-item">🕸️ HiveGrid (Map-Reduce)</a>
-              <a href="#guide-practices" class="fast-nav-item">💡 Buenas y Malas Prácticas</a>
-              <a href="#guide-faq" class="fast-nav-item">❓ FAQ & Errores Comunes</a>
+              <a href="#guide-hivenodes" class="fast-nav-item">🏰 HiveNodes: Servidores Virtuales</a>
+              <a href="#guide-lifecycle" class="fast-nav-item">⚠️ Ciclo de Vida & Lazarus 24/7</a>
+              <a href="#guide-waggles" class="fast-nav-item">🐝 Waggles: State Machines</a>
+              <a href="#guide-pods" class="fast-nav-item">🌸 PollenPods: Micro-Handlers</a>
+              <a href="#guide-grid" class="fast-nav-item">🕸️ HiveGrid: Map-Reduce</a>
+              <a href="#guide-storage" class="fast-nav-item">📦 Almacenamiento & Data Lake</a>
+              <a href="#guide-cli" class="fast-nav-item">💻 SDK & CLI en Terminal</a>
+              <a href="#guide-practices" class="fast-nav-item">💡 Buenas Prácticas</a>
+              <a href="#guide-faq" class="fast-nav-item">❓ Preguntas Frecuentes (FAQ)</a>
             </nav>
           </div>
 
           <!-- Content Column -->
           <div class="onboarding-content">
+            <!-- 1. OVERVIEW -->
             <article id="guide-overview" class="guide-card">
-              <h2>🌟 ¿Qué es MockHive?</h2>
+              <h2>🌟 Visión General: Computación Cloud $0 con MockHive</h2>
               <p>
-                <strong>MockHive</strong> es la plataforma de computación cloud efímera y distribuida de <strong>Terra</strong>. Convierte el tiempo de computación gratuito de GitHub Actions en servidores virtuales interactivos (HiveNodes), máquinas de estado serverless (Waggles), micro-funciones aisladas (PollenPods) y clusters paralelos Map-Reduce (HiveGrid) sin servidores dedicados ni costes de suscripción.
+                <strong>MockHive</strong> es la plataforma de infraestructura y computación en la nube del ecosistema <strong>Terra</strong>. Transforma el poder de cómputo de GitHub Actions en servidores interactivos bajo demanda, máquinas de estados serverless, funciones polyglot y clusters paralelos Map-Reduce sin intermediarios ni facturas mensuales.
               </p>
-            </article>
-
-            <article id="guide-hivenodes" class="guide-card">
-              <h2>🏰 HiveNodes: Servidores Virtuales, Web Terminal & SSH</h2>
-              <p>
-                Un HiveNode es una máquina virtual Ubuntu completa ejecutada sobre un runner de GitHub Actions con persistencia de archivos en <code>/mockhive/data</code>. Dispone de dos formas de conexión:
-              </p>
-              
-              <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px;">
-                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
-                  <h4 style="color: #4ade80; margin-bottom: 6px; font-size: 0.95rem;">🌐 Vía 1: Web Terminal Instantánea (Recomendada - Cero Instalación)</h4>
-                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                    Pulsa el botón <strong>🚀 Abrir en Navegador</strong> en la tarjeta del servidor. Entrarás directamente a una terminal xterm interactiva completa con zsh/bash, soporte para copiar/pegar, colores y permisos de <code>sudo</code> sin instalar ningún cliente.
-                  </p>
-                </div>
-
-                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
-                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">💻 Vía 2: SSH Nativo desde PowerShell / Terminal / VS Code</h4>
-                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin-bottom: 8px;">
-                    Para evitar que los routers domésticos y firewalls bloqueen los puertos TCP no estándar, MockHive tuneliza el tráfico SSH a través del <strong>puerto 443 (HTTPS)</strong> mediante Cloudflare Tunnel.
-                  </p>
-                  <p style="color: #aaa; font-size: 0.85rem; margin-bottom: 6px;"><strong>📦 Requisito Único (Instalar binario de Cloudflare):</strong></p>
-                  <pre style="background: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: #4ade80; border: 1px solid #333; margin-bottom: 8px;"><code># En Windows (PowerShell):
-winget install --id Cloudflare.cloudflared
-
-# En macOS (Homebrew):
-brew install cloudflare/cloudflare/cloudflared
-
-# En Linux (Debian / Ubuntu):
-sudo apt-get install cloudflared</code></pre>
-                  <p style="color: #aaa; font-size: 0.85rem; margin-bottom: 6px;"><strong>⚡ Conexión:</strong></p>
-                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                    Copia el comando SSH de tu nodo (que incluye el ProxyCommand de Cloudflare) y pégalo en tu terminal. Te solicitará la <strong>Contraseña SSH</strong> configurada en el formulario (por defecto: <code>mockhive2026</code>).
-                  </p>
-                </div>
-              </div>
-            </article>
-
-            <article id="guide-247" class="guide-card">
-              <h2>⚠️ Modo 24/7 Lazarus Relay & ToS de GitHub</h2>
-              <div class="alert-box warning">
-                El modo 24/7 utiliza relevos automáticos (relays) antes de las 6 horas de límite del runner de GitHub. Úsalo con moderación y exclusivamente para servidores que realmente requieran continuidad. Para desarrollo y tareas puntuales, utiliza siempre el modo <strong>TTL Efímero</strong>.
-              </div>
-            </article>
-
-            <article id="guide-waggles" class="guide-card">
-              <h2>🐝 Waggles: State Machines & Modos de Ejecución</h2>
-              <p>
-                Las <strong>Waggles</strong> son el equivalente <em>Serverless</em> a <strong>AWS Step Functions</strong> a coste $0. Permiten orquestar flujos de trabajo declarativos en formato ASL (Amazon States Language) con estados <code>Task</code>, <code>Choice</code>, <code>Pass</code>, <code>Wait</code>, <code>Succeed</code> y <code>Fail</code>.
-              </p>
-
-              <h3 style="margin-top: 18px; margin-bottom: 10px; font-size: 1.1rem; color: #ffffff;">⚡ Comparativa de Modos de Ejecución:</h3>
-              <div class="practices-grid" style="margin-bottom: 16px;">
+              <div class="practices-grid" style="margin-top: 14px;">
                 <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #333;">
-                  <h4 style="color: #ffffff;">🌐 Modo 1: Navegador (client_browser)</h4>
-                  <ul style="color: #bbb; font-size: 0.85rem; line-height: 1.5;">
-                    <li><strong>Arranque:</strong> Instantáneo (0 ms de espera).</li>
-                    <li><strong>Entorno:</strong> Motor JavaScript en memoria del navegador.</li>
-                    <li><strong>Capacidades:</strong> Ejecuta el DAG, evalúa ramas lógicas <code>Choice</code>, resuelve <code>$.JSONPath</code> y hace peticiones de red <code>fetch()</code> a APIs públicas o locales.</li>
-                    <li><strong>Ideal para:</strong> Desarrollo rápido, validación de lógica de flujo y prototipado sin gastar minutos de CI.</li>
-                  </ul>
+                  <h4>🔒 100% Privado y en tu Cuenta</h4>
+                  <p style="color: #bbb; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Tus tokens, scripts y datos se almacenan exclusivamente en tu navegador y en tu repositorio privado <code>.mockhive-storage</code>. Ningún dato pasa por servidores externos.
+                  </p>
                 </div>
-
-                <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #555;">
-                  <h4 style="color: #ffffff;">☁️ Modo 2: Cloud Runner (cloud_runner)</h4>
-                  <ul style="color: #bbb; font-size: 0.85rem; line-height: 1.5;">
-                    <li><strong>Arranque:</strong> ~15-25 segundos (aprovisionamiento de contenedor).</li>
-                    <li><strong>Entorno:</strong> Máquina Virtual Ubuntu 24.04 LTS real en GitHub Actions (7 GB RAM, 2 vCPU).</li>
-                    <li><strong>Capacidades:</strong> Acceso completo a terminal Linux, Node.js 20, Python 3, AWS CLI, subida a S3/R2, bases de datos y persistencia automática del resultado en tu repositorio.</li>
-                    <li><strong>Ideal para:</strong> Producción, procesamiento de datos pesados, pipelines de CI/CD reales y tareas con credenciales seguras.</li>
-                  </ul>
+                <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #333;">
+                  <h4>⚡ Ejecución Híbrida (Browser + Cloud)</h4>
+                  <p style="color: #bbb; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Simula y prueba flujos con latencia cero en el motor JavaScript del navegador y despacha tareas pesadas a runners de Ubuntu en la nube cuando sea necesario.
+                  </p>
                 </div>
               </div>
             </article>
 
+            <!-- 2. HIVENODES -->
+            <article id="guide-hivenodes" class="guide-card">
+              <h2>🏰 HiveNodes: Servidores Virtuales y Terminal SSH</h2>
+              <p>
+                Un <strong>HiveNode</strong> es una instancia Ubuntu 24.04 LTS real con 2 vCPU, 7 GB de RAM y 14 GB de SSD, provisionada sobre runners de GitHub Actions con persistencia configurable en <code>/mockhive/data</code>.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #4ade80; margin-bottom: 6px; font-size: 0.95rem;">🌐 1. Web Terminal Instantánea (xterm.js)</h4>
+                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Haz clic en <strong>🚀 Abrir Terminal Web</strong> en el nodo activo. Se iniciará una sesión interactiva en tu navegador con soporte para colores ANSI, atajos de teclado y permisos completos de <code>sudo</code>.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">💻 2. Conexión SSH Nativa por Puerto 443</h4>
+                  <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin-bottom: 8px;">
+                    MockHive utiliza Cloudflare Tunnel para encapsular el tráfico SSH en HTTPS estándar (puerto 443), evitando bloqueos de routers o redes corporativas.
+                  </p>
+                  <pre style="background: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; color: #4ade80; border: 1px solid #333;"><code># Conectar desde cualquier terminal:
+ssh runner@mockhive-tu-nodo.trycloudflare.com</code></pre>
+                  <small style="color: var(--text-muted); display: block; margin-top: 6px;">Contraseña por defecto: <code>mockhive2026</code> (o la configurada al crear el nodo).</small>
+                </div>
+              </div>
+            </article>
+
+            <!-- 3. LIFECYCLE -->
+            <article id="guide-lifecycle" class="guide-card">
+              <h2>⚠️ Ciclo de Vida & Modo 24/7 Lazarus Relay</h2>
+              <p>
+                Los runners de GitHub Actions tienen un límite operativo de 6 horas por ejecución. MockHive ofrece dos modos de gestión del ciclo de vida:
+              </p>
+              <div class="practices-grid" style="margin-top: 14px;">
+                <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #333;">
+                  <h4 style="color: #4ade80;">⏱️ Modo TTL Efímero (Recomendado)</h4>
+                  <p style="color: #bbb; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    El servidor se apaga automáticamente tras $N$ minutos o tras un periodo de inactividad SSH. Es el modo óptimo para desarrollo, pruebas y ahorro de minutos.
+                  </p>
+                </div>
+                <div class="practice-box bad" style="background: rgba(255,255,255,0.02); border-color: #555;">
+                  <h4 style="color: #fb923c;">🔄 Modo 24/7 Lazarus Relay</h4>
+                  <p style="color: #bbb; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Antes de alcanzar las 6 horas, el nodo empaqueta su almacenamiento en <code>/mockhive/data</code>, dispara un nuevo runner relevo y traspasa la sesión. <em>Úsalo con moderación para cumplir con los Términos de Servicio de GitHub.</em>
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <!-- 4. WAGGLES -->
+            <article id="guide-waggles" class="guide-card">
+              <h2>🐝 Waggles: State Machines & Orquestación de Flujos</h2>
+              <p>
+                Las <strong>Waggles</strong> permiten definir pipelines declarativos en formato ASL (Amazon States Language) con soporte para evaluación de ramas lógicas, pausas para aprobación humana y reintentos automáticos.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 12px 16px;">
+                  <strong style="color: #fff; font-size: 0.9rem;">🔌 Conectores Reutilizables:</strong>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 4px 0 0 0;">
+                    Desacopla la lógica del flujo registrando conectores <code>HTTP</code> (APIs REST/GraphQL), <code>Storage</code> (S3, Rolla, Vault) o <code>Code</code> (Micro-scripts).
+                  </p>
+                </div>
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 12px 16px;">
+                  <strong style="color: #fff; font-size: 0.9rem;">⏸️ Aprobaciones Human-in-the-Loop:</strong>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 4px 0 0 0;">
+                    Los estados tipo <code>WaitForApproval</code> pausan la ejecución y generan un token de reanudación hasta que un operador apruebe o rechace la acción desde la consola o el CLI.
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <!-- 5. POLLENPODS -->
+            <article id="guide-pods" class="guide-card">
+              <h2>🌸 PollenPods: Micro-Handlers Serverless Polyglot</h2>
+              <p>
+                Los <strong>PollenPods</strong> son funciones serverless compiladas y listas para ejecutarse bajo demanda en <strong>Python 3.11, Node.js 20, Rust 1.78, Go 1.22, WebAssembly (WASM) o Bash</strong>.
+              </p>
+              <h4 style="color: #fff; margin: 16px 0 8px 0; font-size: 0.95rem;">🚀 3 Vías de Invocación e Integración Externa:</h4>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 12px;">
+                  <strong style="color: #4ade80;">1. Invocación Local mediante SDK o CLI:</strong>
+                  <pre style="background: #000; padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; color: #4ade80; margin: 6px 0 0 0;"><code>node bin/mockhive.js pods invoke pod_normalizer_py --payload '{"data": [1, 2, 3]}'</code></pre>
+                </div>
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 12px;">
+                  <strong style="color: #60a5fa;">2. Endpoint HTTP en Tiempo Real (sobre HiveNode):</strong>
+                  <p style="color: #aaa; font-size: 0.83rem; margin: 4px 0 0 0;">Despliega un micro-servidor en un HiveNode activo para exponer tus pods como endpoints HTTP públicos con latencia inferior a 50 ms.</p>
+                </div>
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 12px;">
+                  <strong style="color: #c084fc;">3. Invocación Asíncrona vía GitHub Dispatches ($0 Cost):</strong>
+                  <p style="color: #aaa; font-size: 0.83rem; margin: 4px 0 0 0;">Lanza ejecuciones serverless directamente contra la API de GitHub (`POST /repos/:owner/:repo/dispatches`) persistiendo el resultado en el Vault.</p>
+                </div>
+              </div>
+            </article>
+
+            <!-- 6. HIVEGRID -->
+            <article id="guide-grid" class="guide-card">
+              <h2>🕸️ HiveGrid: Cluster Distribuido Map-Reduce</h2>
+              <p>
+                <strong>HiveGrid</strong> divide tareas computacionalmente pesadas entre matrices paralelas de <strong>2 a 20 runners simultáneos</strong> con reducción automática de resultados.
+              </p>
+              <div class="practices-grid" style="margin-top: 14px;">
+                <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #333;">
+                  <h4>🔀 Estrategias de Particionamiento</h4>
+                  <ul style="color: #bbb; font-size: 0.83rem; line-height: 1.5;">
+                    <li><strong>Auto-Balanced:</strong> Reparto uniforme entre workers.</li>
+                    <li><strong>Key-Hash:</strong> Hashing por clave para agrupaciones tipo Group-By.</li>
+                    <li><strong>Range-Index:</strong> Fragmentación por bloques secuenciales.</li>
+                  </ul>
+                </div>
+                <div class="practice-box good" style="background: rgba(255,255,255,0.02); border-color: #333;">
+                  <h4>🌳 Reducción Jerárquica en Árbol</h4>
+                  <p style="color: #bbb; font-size: 0.83rem; line-height: 1.5; margin: 0;">
+                    Consolida los resultados de los workers en árboles multinivel $O(\log N)$ para evitar saturar la memoria del nodo maestro.
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <!-- 7. STORAGE -->
+            <article id="guide-storage" class="guide-card">
+              <h2>📦 Almacenamiento Persistente & Data Lake</h2>
+              <p>
+                El almacenamiento en MockHive es agnóstico y desacoplado:
+              </p>
+              <ul style="color: #bbb; font-size: 0.85rem; line-height: 1.6; margin-top: 10px;">
+                <li><strong>GitHub Storage Vault (<code>.mockhive-storage</code>):</strong> Almacenamiento versionado gratuito integrado con GitHub Releases y Git Database API.</li>
+                <li><strong>Rolla Balls (<code>rolla://...</code>):</strong> Almacenamiento inmutable de objetos a coste $0 dentro del ecosistema Terra.</li>
+                <li><strong>S3 Compatible (<code>s3://...</code>):</strong> Conexión directa a AWS S3, Cloudflare R2 o MinIO para datasets de gran volumen.</li>
+              </ul>
+            </article>
+
+            <!-- 8. CLI & SDK -->
+            <article id="guide-cli" class="guide-card">
+              <h2>💻 SDK & CLI en Línea de Comandos</h2>
+              <p>
+                MockHive incluye un CLI completo y un SDK en TypeScript compilado a ES Modules:
+              </p>
+              <pre style="background: #000; padding: 10px 14px; border-radius: 6px; font-size: 0.8rem; color: #4ade80; border: 1px solid #333; margin-top: 10px;"><code># Iniciar la consola local en puerto personalizado:
+mockhive console --port 8999
+
+# Despachar un cluster job Map-Reduce:
+mockhive grid dispatch --name "Batch-Embedding" --workers 6 --runtime python3 --partition key_hash --reduce-tree tree
+
+# Listar e invocar PollenPods:
+mockhive pods list
+mockhive pods invoke pod_crypto_rust --payload '{"data": "terra"}'
+
+# Consultar inventario de servidores:
+mockhive nodes list</code></pre>
+            </article>
+
+            <!-- 9. PRACTICES -->
             <article id="guide-practices" class="guide-card">
-              <h2>💡 Buenas y Malas Prácticas</h2>
+              <h2>💡 Buenas Prácticas de Rendimiento y Seguridad</h2>
               <div class="practices-grid">
                 <div class="practice-box good">
-                  <h4>✔️ Buenas Prácticas</h4>
+                  <h4>✔️ Recomendado</h4>
                   <ul>
-                    <li>Monta almacenamiento persistente en <code>/mockhive/data</code> para no perder archivos en tus HiveNodes.</li>
-                    <li>Utiliza el modo <em>Navegador</em> para probar la lógica de tus Waggles antes de despacharlas a un Cloud Runner.</li>
-                    <li>Usa conectores tipo <em>Storage</em> para desacoplar las credenciales de S3 o Rolla de la lógica de tus DAGs.</li>
-                    <li>Aprovecha los estados <em>Choice</em> para crear compuertas de seguridad automáticas basadas en scores o métricas.</li>
+                    <li>Utiliza siempre tokens de GitHub con los permisos mínimos necesarios (<code>repo</code> y <code>workflow</code>).</li>
+                    <li>Prueba la lógica de tus Waggles en modo <em>Navegador</em> antes de lanzar ejecuciones en <em>Cloud Runner</em>.</li>
+                    <li>Monta <code>/mockhive/data</code> para asegurar que tus dependencias instaladas no se pierdan.</li>
+                    <li>Usa particionamiento <code>key_hash</code> en HiveGrid cuando proceses transacciones o registros agrupables.</li>
                   </ul>
                 </div>
                 <div class="practice-box bad">
-                  <h4>❌ Malas Prácticas</h4>
+                  <h4>❌ A Evitar</h4>
                   <ul>
-                    <li>No dejes corriendo múltiples servidores 24/7 sin supervisión para evitar consumir tu cuota de Actions.</li>
-                    <li>No guardes contraseñas en texto plano; utiliza Secrets de GitHub o campos de Auth en tus Conectores.</li>
-                    <li>No uses bucles infinitos dentro de scripts inline sin una condición de salida garantizada.</li>
+                    <li>No mantengas múltiples servidores 24/7 sin supervisión si no requieres disponibilidad ininterrumpida.</li>
+                    <li>No almacenes credenciales en texto plano; utiliza Secrets de GitHub o campos protegidos.</li>
+                    <li>No ejecutes reducciones monolíticas de payloads masivos sin activar el árbol jerárquico.</li>
                   </ul>
                 </div>
               </div>
             </article>
 
+            <!-- 10. FAQ -->
             <article id="guide-faq" class="guide-card">
               <h2>❓ Preguntas Frecuentes (FAQ) & Resolución de Dudas</h2>
               
-              <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 14px;">
-                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
-                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Las Waggles ejecutan y crean recursos de forma 100% real como AWS Step Functions?</h4>
+              <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 14px;">
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">1. ¿Cómo es posible que MockHive sea 100% a coste $0?</h4>
                   <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                    <strong>Sí.</strong> El motor de estados (grafo de dependencias, variables <code>$.path</code>, bifurcaciones <code>Choice</code> y reintentos) opera exactamente bajo el estándar ASL de AWS. Cuando se ejecuta en modo <strong>Cloud Runner</strong>, una máquina virtual Ubuntu real ejecuta las acciones, lanza llamadas de red TLS y puede crear o modificar recursos externos en cualquier proveedor de la nube.
+                    MockHive aprovecha la cuota de minutos gratuitos de GitHub Actions y el alojamiento de GitHub Pages. No requiere servidores dedicados, bases de datos gestionadas ni intermediarios propietarios.
                   </p>
                 </div>
 
-                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
-                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Puedo subir archivos y escribir en AWS S3, Cloudflare R2 o Bases de Datos?</h4>
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">2. ¿Qué permisos exactos requiere mi GitHub Personal Access Token (PAT)?</h4>
                   <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                    <strong>Totalmente.</strong> Creas un conector de tipo <code>Storage (S3)</code> o <code>HTTP</code> con tus credenciales de acceso (Access Key ID, Secret Key o Token). El runner de GitHub Actions tiene conectividad abierta a internet y las librerías necesarias para ejecutar subidas de objetos (<code>PutObject</code>), inserciones en bases de datos o llamadas a webhooks.
+                    Únicamente requiere los scopes <code>repo</code> (para sincronizar con <code>.mockhive-storage</code>) y <code>workflow</code> (para lanzar runners de Actions bajo demanda).
                   </p>
                 </div>
 
-                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
-                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Cómo cambian los parámetros según el Tipo de Conector?</h4>
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">3. ¿Mis credenciales o datos pasan por algún servidor externo?</h4>
                   <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                    El formulario se adapta dinámicamente:
-                    <br>• <strong>HTTP:</strong> Pide Base URL, Método HTTP, Tipo de Auth (Bearer, API Key) y Cabeceras JSON.
-                    <br>• <strong>Storage:</strong> Pide Proveedor (Rolla-Ball, AWS S3 o GitHub Vault), Bucket/Ball ID y credenciales de acceso.
-                    <br>• <strong>Code / Pod:</strong> Pide Runtime (JavaScript, Python 3, Bash), Timeout y el script de transformación en código puro.
+                    <strong>No, en absoluto.</strong> La consola web se ejecuta en el lado del cliente (navegador) y se comunica de forma directa y cifrada vía TLS con la API oficial de GitHub.
                   </p>
                 </div>
 
-                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
-                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Dónde se guardan mis configuraciones y resultados?</h4>
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">4. ¿Cuál es la diferencia entre PollenPods, Waggles y HiveGrid?</h4>
                   <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                    Todo se sincroniza automáticamente en tu propio repositorio privado <code>.mockhive-storage</code> en GitHub mediante la Git Database API. No existe ningún servidor central propietario de Mockhive: la infraestructura es 100% tuya, privada y a coste $0.
+                    • <strong>PollenPods:</strong> Funciones individuales sin estado para cálculos rápidos.<br>
+                    • <strong>Waggles:</strong> Grafos orquestados de múltiples pasos con ramificaciones lógicas y aprobaciones.<br>
+                    • <strong>HiveGrid:</strong> Computación paralela masiva en matriz para procesar grandes volúmenes de datos.
                   </p>
                 </div>
 
-                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px 16px;">
-                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">¿Cómo paso datos entre estados consecutivos en una Waggle?</h4>
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">5. ¿Puedo conectar mi frontend o backend externo a un HiveNode o PollenPod?</h4>
                   <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
-                    Utiliza la propiedad <code>"ResultPath": "$.nombreVariable"</code> en el estado de origen. El resultado se inyectará en el contexto global <code>$</code> y estará disponible en los siguientes estados usando referencias como <code>"$.nombreVariable.propiedad"</code>.
+                    <strong>Sí.</strong> Puedes invocar pods mediante GitHub Dispatches vía REST API o exponer un túnel HTTP público con Cloudflare Tunnel en un HiveNode activo.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">6. ¿Qué ocurre si un runner de GitHub Actions se apaga?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Si el nodo tiene almacenamiento persistente configurado (Vault, Rolla o S3), el estado de <code>/mockhive/data</code> se almacena automáticamente y se restaura íntegro al volver a encender el nodo.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">7. ¿Puedo ejecutar contenedores Docker propios en un HiveNode?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    <strong>Sí.</strong> El runner de Ubuntu incluye el demonio Docker preinstalado. Puedes ejecutar <code>docker run</code>, <code>docker compose</code> o compilar imágenes sin restricciones.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">8. ¿Cómo funciona el árbol de reducción jerárquica en HiveGrid?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    En lugar de enviar todas las salidas a un único nodo final, HiveGrid agrupa las salidas intermedias por parejas en reducers de primer nivel antes de consolidar el resultado final en la raíz ($O(\log N)$).
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">9. ¿Cómo se integran las aplicaciones de Terra (Rolla, Mantx, Formica, Maskito)?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    Todas las aplicaciones de Terra comparten el protocolo de almacenamiento inmutable Rolla y los conectores HTTP universales de Waggles, permitiendo crear pipelines autónomos completos.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">10. ¿Puedo ejecutar la consola en local con un puerto personalizado?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    <strong>Sí.</strong> Ejecuta <code>mockhive console --port 8999</code> o <code>mockhive serve --port 8999</code> para levantar el servidor web estático en cualquier puerto de tu máquina.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">11. ¿Dónde se visualizan los logs de telemetría en tiempo real?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    En la pestaña <strong>Resource Monitor</strong> encontrarás el stream de eventos en vivo que registra las transacciones del Vault, lanzamientos de pods y estados de servidores.
+                  </p>
+                </div>
+
+                <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 14px;">
+                  <h4 style="color: #ffffff; margin-bottom: 6px; font-size: 0.95rem;">12. ¿Qué ocurre si alcanzo el límite de concurrencia de GitHub Actions?</h4>
+                  <p style="color: #aaa; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                    GitHub Actions encolará automáticamente los jobs excedentes y los ejecutará en cuanto quede un runner libre, sin perder ningún parámetro ni estado del cluster.
                   </p>
                 </div>
               </div>
@@ -1413,7 +1557,7 @@ sudo apt-get install cloudflared</code></pre>
   <div id="modal-edit-pod" class="modal-backdrop hidden" onclick="handleBackdropClick(event, 'modal-edit-pod')">
     <div class="modal-dialog modal-lg" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h3>🌸 Editar Micro-VM (PollenPod)</h3>
+        <h3>🌸 Editar PollenPod</h3>
         <button class="modal-close" onclick="closeEditPodModal()">✕</button>
       </div>
       <div class="modal-body">
@@ -1760,6 +1904,6 @@ sudo apt-get install cloudflared</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=1.3.0"></script>
+  <script src="app.js?v=1.3.1"></script>
 </body>
 </html>

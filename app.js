@@ -441,12 +441,12 @@ function switchTab(tabId) {
   if (pane) pane.classList.add('active');
 
   const titles = {
-    dashboard: ['Resource Monitor & Live Dashboard', 'Monitoreo en tiempo real de infraestructura efímera'],
-    nodes: ['HiveNodes (EC2 Virtual Servers & Relays)', 'Servidores Ubuntu con terminal SSH en navegadores y CLI'],
-    waggles: ['Waggles State Machines & Step Functions', 'Orquestación declarativa de grafos de ejecución y aprobaciones'],
-    pods: ['PollenPods (Polyglot Micro-VMs)', 'Ejecución serverless bajo demanda para Python, Rust, Go, WASM'],
-    grid: ['HiveGrid (Distributed Map-Reduce Cluster)', 'Computación paralela masiva multi-runner a coste $0'],
-    onboarding: ['Onboarding, Guía & Manual de Uso', 'Documentación completa, buenas prácticas y solución de dudas']
+    dashboard: ['Resource Monitor', 'Monitoreo en tiempo real de infraestructura efímera y tareas distribuidas'],
+    nodes: ['HiveNodes', 'Servidores Ubuntu con terminal SSH interactiva en navegador y CLI'],
+    waggles: ['Waggles', 'Orquestación declarativa de grafos de ejecución, conectores y aprobaciones'],
+    pods: ['PollenPods', 'Funciones serverless polyglot bajo demanda para Python, Rust, Go, Node.js y WASM'],
+    grid: ['HiveGrid', 'Computación paralela masiva Map-Reduce multi-runner a coste $0'],
+    onboarding: ['Guía & Documentación', 'Manual completo, arquitectura, buenas prácticas y preguntas frecuentes']
   };
 
   if (titles[tabId]) {
